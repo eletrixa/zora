@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Creates one git worktree and branch per lane of a wave, next to the repo, so agents work in
+# parallel without touching each other's files. Safe to run again: existing worktrees are kept.
+#
+# Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+# Module:  bin/lane-worktrees
+# Deps:    git, jq
+# Tested:  n/a (prints what it made; bin/lane-check.ts guards the result)
+#
+# Usage: bin/lane-worktrees <wave-number>
+set -euo pipefail
+cd "$(dirname "$0")/.."
+ROOT="$(pwd)"
+WAVE="${1:?usage: bin/lane-worktrees <wave-number>}"
+BASE="${ZAL_WORKTREES:-$ROOT/../zorasocial-wt}"
+mkdir -p "$BASE"
+
+[ -z "$(git status --porcelain)" ] || { echo "ABORT: main has uncommitted changes; lanes must branch from a clean commit" >&2; exit 1; }
+
+jq -r --argjson wave "$WAVE" '.lanes | to_entries[] | select(.value.wave == $wave) | .key' lanes.json | while read -r lane; do
+  dir="$BASE/$lane"
+  if [ -d "$dir" ]; then
+    echo "kept    $lane  $dir"
+    continue
+  fi
+  git worktree add -q -b "lane/$lane" "$dir" main
+  # Lanes may not add packages, so they share the installed ones.
+  ln -s "$ROOT/node_modules" "$dir/node_modules"
+  echo "created $lane  $dir"
+done

@@ -1,0 +1,268 @@
+{
+  "_about": "Who owns which files. bin/lane-check enforces it. Integrator-owned: everything not listed under a lane.",
+  "every_lane_also_owns": [
+    "changes/{lane}.md",
+    "requests/{lane}.md",
+    "docs/ops/runs/{lane}.md"
+  ],
+  "gates": [
+    "bun run typecheck",
+    "bun test",
+    "bun bin/lane-check.ts {lane}"
+  ],
+  "lanes": {
+    "partner-client": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/partner/**",
+        "test/partner/**"
+      ]
+    },
+    "catalogue-store": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/catalogue/**",
+        "test/catalogue/**"
+      ]
+    },
+    "search": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/search/**",
+        "test/search/**",
+        "test/eval/**",
+        "bin/eval-search.ts"
+      ]
+    },
+    "carts": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/carts/**",
+        "test/carts/**"
+      ]
+    },
+    "shopping": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/shopping/**",
+        "test/shopping/**"
+      ]
+    },
+    "agent-api": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/agent/api/**",
+        "test/agent/api/**"
+      ]
+    },
+    "agent-mcp": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/agent/mcp/**",
+        "test/agent/mcp/**"
+      ]
+    },
+    "cli": {
+      "wave": 1,
+      "model": "haiku",
+      "owns": [
+        "bin/zal",
+        "bin/zal.ts",
+        "test/cli/**"
+      ]
+    },
+    "monitor": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/monitor/**",
+        "test/monitor/**"
+      ]
+    },
+    "collector": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "collector/**",
+        "test/collector/**"
+      ]
+    },
+    "probe-runner": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/probe/run.ts",
+        "src/probe/scorecard.ts",
+        "test/probe/run.test.ts",
+        "test/probe/scorecard.test.ts"
+      ]
+    },
+    "probe-checks-a": {
+      "wave": 1,
+      "model": "haiku",
+      "owns": [
+        "src/probe/checks/openapi-drift.ts",
+        "src/probe/checks/guide-version.ts",
+        "src/probe/checks/registration.ts",
+        "src/probe/checks/order-read.ts",
+        "test/probe/checks/openapi-drift.test.ts",
+        "test/probe/checks/guide-version.test.ts",
+        "test/probe/checks/registration.test.ts",
+        "test/probe/checks/order-read.test.ts"
+      ]
+    },
+    "probe-checks-b": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/probe/checks/catalogue-page.ts",
+        "src/probe/checks/catalogue-walk.ts",
+        "src/probe/checks/catalogue-delta.ts",
+        "src/probe/checks/refusals.ts",
+        "test/probe/checks/catalogue-page.test.ts",
+        "test/probe/checks/catalogue-walk.test.ts",
+        "test/probe/checks/catalogue-delta.test.ts",
+        "test/probe/checks/refusals.test.ts"
+      ]
+    },
+    "probe-checks-c": {
+      "wave": 1,
+      "model": "sonnet",
+      "owns": [
+        "src/probe/checks/cart-lifecycle.ts",
+        "src/probe/checks/price-mismatch.ts",
+        "src/probe/checks/buy-link.ts",
+        "test/probe/checks/cart-lifecycle.test.ts",
+        "test/probe/checks/price-mismatch.test.ts",
+        "test/probe/checks/buy-link.test.ts"
+      ]
+    },
+    "docs-rules": {
+      "wave": 1,
+      "model": "haiku",
+      "owns": [
+        "rules/**",
+        "README.md",
+        "docs/architecture.md"
+      ]
+    },
+    "ui-components": {
+      "wave": 2,
+      "model": "sonnet",
+      "owns": [
+        "src/ui/components/**",
+        "public/static/app.css",
+        "test/ui/components/**"
+      ]
+    },
+    "ui-return": {
+      "wave": 3,
+      "model": "sonnet",
+      "owns": [
+        "src/ui/pages/return.tsx",
+        "public/static/return.js",
+        "test/ui/pages/return.test.tsx"
+      ]
+    },
+    "ui-finder": {
+      "wave": 3,
+      "model": "sonnet",
+      "owns": [
+        "src/ui/pages/finder.tsx",
+        "test/ui/pages/finder.test.tsx"
+      ]
+    },
+    "ui-deal": {
+      "wave": 3,
+      "model": "sonnet",
+      "owns": [
+        "src/ui/pages/deal.tsx",
+        "test/ui/pages/deal.test.tsx"
+      ]
+    },
+    "ui-checkout": {
+      "wave": 3,
+      "model": "sonnet",
+      "owns": [
+        "src/ui/pages/checkout.tsx",
+        "test/ui/pages/checkout.test.tsx"
+      ]
+    },
+    "ui-price-truth": {
+      "wave": 3,
+      "model": "sonnet",
+      "owns": [
+        "src/ui/pages/price-truth.tsx",
+        "test/ui/pages/price-truth.test.tsx"
+      ]
+    },
+    "ui-scorecard": {
+      "wave": 3,
+      "model": "sonnet",
+      "owns": [
+        "src/ui/pages/scorecard.tsx",
+        "src/ui/pages/not-found.tsx",
+        "test/ui/pages/scorecard.test.tsx"
+      ]
+    },
+    "sync-category": {
+      "wave": 4,
+      "model": "opus",
+      "owns": [
+        "src/sync/**",
+        "test/sync/**"
+      ]
+    },
+    "top-deals": {
+      "wave": 4,
+      "model": "sonnet",
+      "owns": [
+        "src/top-deals/**",
+        "test/top-deals/**"
+      ]
+    },
+    "ui-top-deals": {
+      "wave": 4,
+      "model": "sonnet",
+      "owns": [
+        "src/ui/pages/top-deals.tsx",
+        "test/ui/pages/top-deals.test.tsx"
+      ]
+    },
+    "docs-showcase": {
+      "wave": 4,
+      "model": "sonnet",
+      "owns": [
+        "docs/ai-builder/**",
+        "docs/reference/README.md",
+        "LICENSE",
+        "README.md",
+        "docs/architecture.md"
+      ]
+    },
+    "export-public": {
+      "wave": 4,
+      "model": "sonnet",
+      "owns": [
+        "bin/export-public",
+        "bin/export-public.ts",
+        "test/bin/export-public.test.ts"
+      ]
+    },
+    "ui-pixel": {
+      "wave": 5,
+      "model": "sonnet",
+      "owns": [
+        "public/static/pixel.css",
+        "test/ui/pixel/pixel-css.test.ts"
+      ]
+    }
+  }
+}

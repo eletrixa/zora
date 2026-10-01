@@ -1,0 +1,196 @@
+/* The pixel look: LANGUAGE.md's dark, square, hard-shadow skin over app.css's lab structure.
+   Loaded second on every page; every rule here is scoped under [data-theme="pixel"], so none of
+   it touches the lab look. app.css draws the layout, this file only retints and reshapes it.
+
+   Contrast of every pixel text/background pair used below (sRGB relative luminance, >= 4.5:1):
+   ink #E8E4D8 on ground #14151C 14.3, on surface/panel #1B1D26 13.2, on bar/field #0F1016 14.9
+   muted #A8A5B8 on ground 7.6, on surface/panel 7.0, on bar/field 7.9, on pass-tint 6.3, on fail-tint 7.1
+   accent (amber) #F2B33D on ground 9.8; on-action #14151C on accent/accent-hi fills 9.8+
+   eyebrow/promo lavender #B9A6F2 on ground 8.5, on panel 7.8, on its own tint #211D30 7.6
+   save amber #F2B33D on its tint #2A2410 8.3
+   pass mint #7FE0A6 on panel 10.5, on its own tint #132A1E 9.5
+   fail-ink #FF7A6B on panel 6.6, on its own tint #2A1716 6.7; on-action on fail-ink (badge--strong) 7.2
+   link-hover (accent-hi) #FFD97A on ground 13.4
+   (neutral #5A5D70 is a fill/border colour only, never text, so it sits outside this list)
+
+   Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+   Module:  public/static/pixel.css
+   Deps:    public/static/app.css (the structure this file retints), design/LANGUAGE.md (the spec)
+   Tested:  test/ui/pixel/pixel-css.test.ts */
+
+:root[data-theme="pixel"]{
+--ground:#14151C;--surface:#1B1D26;--panel:#1B1D26;--bar:#0F1016;--field:#0F1016;--track:#0F1016;
+--line:#3A3D4D;--row-line:#2E3140;--field-line:#4A4E62;--empty-line:#3A3D4D;
+--ink:#E8E4D8;--muted:#A8A5B8;--action:#F2B33D;--on-action:#14151C;--link-hover:#FFD97A;
+--accent:#F2B33D;--figure:#E8E4D8;--eyebrow:#B9A6F2;
+--save:#F2B33D;--save-tint:#2A2410;--save-line:#F2B33D;
+--promo:#B9A6F2;--promo-tint:#211D30;--promo-line:#B9A6F2;
+--pass:#7FE0A6;--pass-tint:#132A1E;--pass-line:#2F6B4A;
+--fail:#FF7A6B;--fail-ink:#FF7A6B;--fail-tint:#2A1716;--fail-line:#7A2E26;--fail-hatch:#7A2E26;
+--neutral:#5A5D70;--monogram:#7A5A12;--panel-stripe:#181A23;
+--chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h4v2h4V0h4v2h-2v2H8v2H4V4H2V2H0z' fill='%23A8A5B8'/%3E%3C/svg%3E");
+--skyline:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='56' shape-rendering='crispEdges'%3E%3Crect x='0' y='22' width='28' height='34' fill='%23262B3A'/%3E%3Crect x='0' y='22' width='28' height='2' fill='%233A3F52'/%3E%3Crect x='8' y='30' width='4' height='4' fill='%23F2B33D'/%3E%3Crect x='18' y='30' width='4' height='4' fill='%234A4E62'/%3E%3Crect x='8' y='40' width='4' height='4' fill='%23F2B33D'/%3E%3Crect x='34' y='6' width='36' height='50' fill='%231E2230'/%3E%3Crect x='34' y='6' width='36' height='2' fill='%233A3F52'/%3E%3Crect x='42' y='16' width='4' height='4' fill='%23F2B33D'/%3E%3Crect x='54' y='16' width='4' height='4' fill='%234A4E62'/%3E%3Crect x='42' y='28' width='4' height='4' fill='%234A4E62'/%3E%3Crect x='54' y='28' width='4' height='4' fill='%23F2B33D'/%3E%3Crect x='42' y='40' width='4' height='4' fill='%23F2B33D'/%3E%3Crect x='54' y='40' width='4' height='4' fill='%234A4E62'/%3E%3Crect x='76' y='34' width='24' height='22' fill='%231A1D29'/%3E%3Crect x='76' y='34' width='24' height='2' fill='%233A3F52'/%3E%3Crect x='84' y='42' width='4' height='4' fill='%234A4E62'/%3E%3Crect x='92' y='42' width='4' height='4' fill='%23F2B33D'/%3E%3C/svg%3E");
+--font-head:'Silkscreen','IBM Plex Mono',monospace;
+--font-body:'IBM Plex Mono','Consolas',monospace;
+--font-mono:'IBM Plex Mono','Consolas',monospace;
+--accent-shadow:#7A5A12;--accent-hi:#FFD97A;--accent-tint:#2A2410;
+--checker-a:#1F2230;--checker-b:#181A23;
+}
+
+/* 2. Base type: the h1 is the page's one Press Start 2P display figure; the lead reads in Mono. */
+[data-theme="pixel"] h1{font-family:'Press Start 2P','Silkscreen',monospace;font-weight:400;font-size:28px;line-height:1.4;text-transform:uppercase;color:var(--accent);text-shadow:4px 4px 0 #000}
+[data-theme="pixel"] .hero-title--long{font-size:22px}
+[data-theme="pixel"] .lead{font-family:var(--font-mono);font-size:15px;line-height:1.6}
+[data-theme="pixel"] .eyebrow{font-family:var(--font-head);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+[data-theme="pixel"] svg.glyph{shape-rendering:crispEdges}
+
+/* 3. The lockup and the switch: marks swapped, wordmark uppercase Silkscreen, square amber switch. */
+[data-theme="pixel"] .mark--lab{display:none}
+[data-theme="pixel"] .mark--pixel{display:block}
+[data-theme="pixel"] .shell-lockup::after{width:2px}
+[data-theme="pixel"] .shell-brand-name{font-family:var(--font-head);font-size:16px;letter-spacing:.12em;text-transform:uppercase}
+[data-theme="pixel"] .shell-wordmark-zora{color:var(--accent)}
+[data-theme="pixel"] .theme-switch::before{border-radius:0;border-width:2px;background:var(--bar);box-shadow:3px 3px 0 #000}
+[data-theme="pixel"] .theme-switch button{font-family:var(--font-head);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+[data-theme="pixel"] .theme-switch button::after{border-radius:0}
+[data-theme="pixel"] .theme-switch button[value="pixel"]{color:var(--on-action)}
+[data-theme="pixel"] .theme-switch button[value="pixel"]::after{background:var(--action);border-left:2px solid var(--line)}
+[data-theme="pixel"] .theme-switch button[value="lab"]{color:var(--muted)}
+[data-theme="pixel"] .theme-switch button[value="lab"]::after{background:transparent}
+[data-theme="pixel"] .theme-switch button[value="lab"]:hover{color:var(--accent)}
+[data-theme="pixel"] .theme-switch button[value="lab"]:hover::after{background:var(--accent-tint)}
+[data-theme="pixel"] .theme-switch button[value="pixel"]:hover::after{background:var(--action)}
+[data-theme="pixel"] .theme-switch button:focus-visible::after{outline:2px dashed var(--accent);outline-offset:-5px}
+
+/* 4. Header: no border of its own; in real flow and full bleed to the padded edge, the strip
+      carries the one rule under it, the skyline (home only) or the quiet band. */
+[data-theme="pixel"] .shell-header{border-bottom:none;flex-wrap:wrap;row-gap:0}
+[data-theme="pixel"] .shell-header::after{content:"";flex-basis:calc(100% + 112px);flex-shrink:0;height:24px;margin:0 -56px;background:var(--bar);border-bottom:2px solid var(--line);pointer-events:none}
+[data-theme="pixel"] .shell-header:has(.shell-nav a[href="/"][aria-current="page"])::after{height:56px;background:var(--bar) var(--skyline) repeat-x left bottom;border-bottom:4px solid var(--accent)}
+[data-theme="pixel"] .shell-nav{gap:8px}
+[data-theme="pixel"] .shell-nav a{font-family:var(--font-head);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:0 14px;border:2px solid transparent}
+[data-theme="pixel"] .shell-nav a[aria-current="page"]{border-color:var(--accent);background:var(--accent-tint)}
+
+/* 6. Picker card: squared, hard shadow, boxed slots over an underline, Silkscreen words. */
+[data-theme="pixel"] .picker-card{border-radius:0;border-width:2px;box-shadow:4px 4px 0 #000;padding:20px 24px}
+[data-theme="pixel"] .sentence-word{font-weight:700;font-size:20px;letter-spacing:.04em;text-transform:uppercase;padding-bottom:10px}
+[data-theme="pixel"] .sentence-word+.sentence-word{margin-left:0}
+[data-theme="pixel"] .sentence-pick-label,[data-theme="pixel"] .figure-label{font-family:var(--font-head);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+[data-theme="pixel"] .sentence-select,[data-theme="pixel"] .sentence-input{height:48px;padding:8px 12px;font-family:var(--font-mono);font-weight:600;font-size:18px;line-height:1.3;color:var(--accent);border:2px solid var(--field-line);border-bottom:4px solid var(--accent);border-radius:0;background:var(--field);box-shadow:inset 2px 2px 0 #000}
+[data-theme="pixel"] .sentence-select{padding-right:36px;background:var(--field) var(--chevron) no-repeat right 12px center}
+
+/* 7. Section heads and boxes: Silkscreen titles with an accent square, a thicker rule. */
+[data-theme="pixel"] .section-title--rule,[data-theme="pixel"] .section-title{font-family:var(--font-head);font-size:16px;letter-spacing:.08em;text-transform:uppercase}
+[data-theme="pixel"] .section-title--rule{display:flex;align-items:center;gap:8px;border-bottom-width:4px}
+[data-theme="pixel"] .section-title--rule::before{content:"";width:8px;height:8px;flex-shrink:0;background:var(--accent)}
+[data-theme="pixel"] .box{border-radius:0;border-width:2px;box-shadow:4px 4px 0 #000}
+[data-theme="pixel"] .box-title{font-family:var(--font-head);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+[data-theme="pixel"] .labelled-list>div{border-bottom:2px dotted var(--row-line)}
+[data-theme="pixel"] .figure-value{font-family:var(--font-mono)}
+
+/* The old section card (Checkout), kept to the same shape. */
+[data-theme="pixel"] .section{border-radius:0;border-width:2px;box-shadow:4px 4px 0 #000}
+
+/* 8. Tiles: squared panels with a hard shadow, Silkscreen labels, Mono figures. */
+[data-theme="pixel"] .tile{border-radius:0;border:2px solid var(--line);box-shadow:4px 4px 0 #000}
+[data-theme="pixel"] .tile-label{font-family:var(--font-head);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+[data-theme="pixel"] .tile-value,[data-theme="pixel"] .tiles--panel .tile-value{font-family:var(--font-mono);font-size:28px}
+[data-theme="pixel"] .tile--lead{border-top:4px solid var(--accent)}
+[data-theme="pixel"] .tile--lead .tile-value{font-size:32px}
+[data-theme="pixel"] .tiles--capped .tile-value{font-size:24px}
+[data-theme="pixel"] .tiles--capped .tile--lead .tile-value{font-size:28px}
+
+/* 9. Deal cards and podium: squared, hard shadow, pixelated photos, a checkered monogram ground. */
+[data-theme="pixel"] .card,[data-theme="pixel"] .podium-card{border-radius:0;border-width:2px;box-shadow:4px 4px 0 #000}
+[data-theme="pixel"] .card-image,[data-theme="pixel"] .podium-photo{image-rendering:pixelated}
+[data-theme="pixel"] .deal-photo{border-radius:0;image-rendering:pixelated;background:repeating-conic-gradient(var(--checker-a) 0 25%,var(--checker-b) 0 50%) 0 0/16px 16px}
+[data-theme="pixel"] .card-image,[data-theme="pixel"] .podium-mono{background:repeating-conic-gradient(var(--checker-a) 0 25%,var(--checker-b) 0 50%) 0 0/16px 16px;text-shadow:2px 2px 0 #000}
+[data-theme="pixel"] .card-title,[data-theme="pixel"] .podium-title{font-family:var(--font-mono);font-weight:600;font-size:15px;line-height:1.4}
+[data-theme="pixel"] .podium-card--winner{border:2px solid var(--accent);box-shadow:4px 4px 0 var(--accent-shadow)}
+[data-theme="pixel"] .podium-rank{border-radius:0;box-shadow:3px 3px 0 #000}
+
+/* 10. Price, save pill, promo: squared chips on their tint, the hard shadow kept off plain text. */
+[data-theme="pixel"] .price-pay,[data-theme="pixel"] .podium-pay{font-family:var(--font-mono)}
+[data-theme="pixel"] .podium-card--winner .podium-pay{font-size:32px}
+[data-theme="pixel"] .price--large .price-pay{font-family:'Press Start 2P','Silkscreen',monospace;font-weight:400;font-size:28px;color:var(--accent)}
+[data-theme="pixel"] .save-pill,[data-theme="pixel"] .podium-save{border-radius:0;border-width:2px}
+[data-theme="pixel"] .promo{border-radius:0;border-width:2px}
+[data-theme="pixel"] .promo-line{font-family:var(--font-mono);font-size:12px}
+[data-theme="pixel"] .page-foot{border-top:2px dotted var(--row-line)}
+
+/* 11. Rank rows, the saving bar, gap rows: dotted row rules, a solid head rule, a segmented fill. */
+[data-theme="pixel"] .rank-row,[data-theme="pixel"] .option-row,[data-theme="pixel"] .labelled-list>div,[data-theme="pixel"] .check-row,[data-theme="pixel"] .table td{border-bottom:2px dotted var(--row-line)}
+[data-theme="pixel"] .rank-head,[data-theme="pixel"] .table th{border-bottom:2px solid var(--line);font-family:var(--font-head);font-size:11px;letter-spacing:.1em}
+[data-theme="pixel"] .rank-row .rank-no{color:var(--accent)}
+[data-theme="pixel"] .rank-row .rank-pay,[data-theme="pixel"] .option-row-pay{font-weight:700}
+[data-theme="pixel"] .saving-track{width:76px;height:6px;border-radius:0;border:2px solid var(--line);background:var(--track)}
+[data-theme="pixel"] .saving-fill{background:repeating-linear-gradient(90deg,var(--accent) 0 6px,transparent 6px 8px)}
+
+/* 13. Verdict banner: a uniform 2 px tone border, the hard shadow, Press Start 2P as the one figure. */
+[data-theme="pixel"] .verdict{border-radius:0;border-width:2px;border-color:var(--neutral);box-shadow:4px 4px 0 #000}
+[data-theme="pixel"] .verdict--pass{border-color:var(--pass)}
+[data-theme="pixel"] .verdict--fail{border-color:var(--fail-ink)}
+[data-theme="pixel"] .verdict-word{font-family:'Press Start 2P','Silkscreen',monospace;font-weight:400;font-size:28px;line-height:1.3;letter-spacing:normal;text-shadow:3px 3px 0 #000}
+[data-theme="pixel"] .verdict--example .verdict-word{font-family:var(--font-head);font-weight:700;font-size:20px;letter-spacing:.04em;text-shadow:none}
+[data-theme="pixel"] .verdict-text{font-size:15px;line-height:1.6}
+[data-theme="pixel"] .state-caption{font-family:var(--font-head);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+
+/* 14. Day strip: square cells, same size, the pass/fail tones already carried by the tokens. */
+[data-theme="pixel"] .day{border-radius:0}
+
+/* 15. Data table, histogram, latency bars, share bar: a lined track, a segmented fill, square swatches. */
+[data-theme="pixel"] .histogram-track{border-radius:0;border:2px solid var(--line)}
+[data-theme="pixel"] .histogram-bar{border-radius:0;background:repeating-linear-gradient(90deg,var(--accent) 0 8px,transparent 8px 10px)}
+[data-theme="pixel"] .histogram-back{border-radius:0;background:repeating-linear-gradient(90deg,var(--accent-shadow) 0 8px,transparent 8px 10px)}
+[data-theme="pixel"] .latency-swatch{border-radius:0;background:var(--accent)}
+[data-theme="pixel"] .latency-swatch--p95{background:var(--accent-shadow)}
+[data-theme="pixel"] .share-bar-track{border-radius:0}
+[data-theme="pixel"] .share-bar-swatch{border-radius:0}
+
+/* 16. Badges, buttons, fields, sort: square, 2 px bordered, Silkscreen labels and buttons. */
+[data-theme="pixel"] .badge{border-radius:0;border:2px solid transparent;font-family:var(--font-head);font-weight:700;font-size:11px;letter-spacing:.08em}
+[data-theme="pixel"] .badge--pass{border-color:var(--pass)}
+[data-theme="pixel"] .badge--fail,[data-theme="pixel"] .badge--warn,[data-theme="pixel"] .badge--strong{border-color:var(--fail-ink)}
+[data-theme="pixel"] .badge--neutral{border-color:var(--line)}
+[data-theme="pixel"] .btn{border-radius:0;border:2px solid var(--accent-hi);box-shadow:4px 4px 0 var(--accent-shadow);font-family:var(--font-head);font-weight:700;font-size:14px;letter-spacing:.1em;text-transform:uppercase}
+[data-theme="pixel"] .btn--secondary{border-color:var(--line);box-shadow:4px 4px 0 #000}
+[data-theme="pixel"] .field-label{font-family:var(--font-head);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+[data-theme="pixel"] .field input,[data-theme="pixel"] .field select{border-radius:0;border-width:2px;box-shadow:inset 2px 2px 0 #000}
+[data-theme="pixel"] .sort{border-radius:0;border-width:2px;box-shadow:4px 4px 0 #000}
+[data-theme="pixel"] .sort a{font-family:var(--font-head);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+[data-theme="pixel"] .sort a+a{border-left-width:2px}
+
+/* 17. Option rows, pills, voucher card: the same square, 2 px, hard-shadow treatment. */
+[data-theme="pixel"] .pill{border-radius:0;border-width:2px}
+[data-theme="pixel"] .voucher-card{border-radius:0;border-width:2px;box-shadow:4px 4px 0 #000}
+[data-theme="pixel"] .voucher-item{border-radius:0;border-width:2px}
+
+/* 18. Check rows, finding card: dotted rows (above), a thicker tone rule, a 2 px line. */
+[data-theme="pixel"] .finding-card{border-radius:0;border-width:2px;border-left-width:6px}
+
+/* 19. Empty state, drawn state, sample pill: a dashed 2 px line, no curve. */
+[data-theme="pixel"] .empty{border-radius:0;border-width:2px;font-size:14px;line-height:1.6}
+
+/* Phone (390): font sizes only, never layout — the lab phone rules stay in charge.
+   One exception: the header's full-bleed flex-basis and margin above assume the 56 px desktop
+   gutter; at 16/0 the header already has no side padding, so the strip needs no widened basis
+   and no pull to reach the edges. */
+@media (max-width:480px){
+[data-theme="pixel"] .shell-header::after{flex-basis:100%;margin:0}
+[data-theme="pixel"] .shell-brand-name{font-size:11px;letter-spacing:.08em}
+[data-theme="pixel"] .shell-nav a{font-size:10px;letter-spacing:.04em}
+[data-theme="pixel"] h1{font-size:20px;text-shadow:3px 3px 0 #000}
+[data-theme="pixel"] .hero-title--long{font-size:18px}
+[data-theme="pixel"] .sentence-word{font-size:16px}
+[data-theme="pixel"] .sentence-select,[data-theme="pixel"] .sentence-input{font-size:16px}
+[data-theme="pixel"] .verdict-word{font-size:20px}
+[data-theme="pixel"] .verdict--example .verdict-word{font-size:16px}
+[data-theme="pixel"] .tile-value,[data-theme="pixel"] .tiles--panel .tile-value{font-size:20px}
+[data-theme="pixel"] .tile--lead .tile-value{font-size:24px}
+[data-theme="pixel"] .tiles--capped .tile-value{font-size:20px}
+[data-theme="pixel"] .tiles--capped .tile--lead .tile-value{font-size:24px}
+[data-theme="pixel"] .figure-value{font-size:20px}
+[data-theme="pixel"] .price-pay,[data-theme="pixel"] .podium-pay{font-size:26px}
+[data-theme="pixel"] .podium-card--winner .podium-pay{font-size:28px}
+[data-theme="pixel"] .price--large .price-pay{font-size:22px}
+}

@@ -1,0 +1,42 @@
+{
+  // Zora Agent Lab at zorasocial.asajj.cz. The Worker runs first on every request so the token
+  // gates and the noindex header sit in front of the static assets too. Integrator-owned.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "zorasocial",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "minify": true,
+  "upload_source_maps": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "routes": [{ "pattern": "zorasocial.asajj.cz", "custom_domain": true }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zorasocial",
+      "database_id": "PENDING_CREATE",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "workflows": [
+    { "name": "zorasocial-catalogue-sync", "binding": "SYNC_WORKFLOW", "class_name": "CatalogueSyncWorkflow" }
+  ],
+  "triggers": {
+    // Keep in step with SCHEDULE in src/cron.ts (test/app/cron.test.ts compares the two).
+    "crons": ["0 */3 * * *", "0 4 * * *", "30 4 * * *", "15 * * * *", "0 5 * * 1", "30 0 * * *"]
+  },
+  "vars": {
+    "PARTNER_BASE_URL": "https://api.enc.groupon.com",
+    "PARTNER_USER_AGENT": "ZoraAgentLab/1.0 (+https://zorasocial.asajj.cz; partner-contact@example.com)",
+    "PARTNER_MIN_INTERVAL_MS": "1000",
+    "SYNC_PAGE_SIZE": "50",
+    "CART_SAMPLE_SIZE": "20"
+  },
+  // Secrets, set with `wrangler secret put`, never written here:
+  //   GROUPON_PARTNER_API_KEY  ZAL_AGENT_TOKEN  ZAL_INGEST_TOKEN  ZAL_ADMIN_TOKEN
+  "observability": { "enabled": true }
+}

@@ -1,0 +1,285 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-09-29T19:12:43Z"
+ },
+ "title": "Zora Agent Lab",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1280,
+   "h": 1340,
+   "title": "Deal finder"
+  },
+  "Checkout.dc.html": {
+   "x": 2720,
+   "y": 0,
+   "w": 1280,
+   "h": 820,
+   "title": "Checkout hand-off"
+  },
+  "CheckoutPriceChanged.dc.html": {
+   "x": 4080,
+   "y": 0,
+   "w": 1280,
+   "h": 560,
+   "title": "Checkout: price changed"
+  },
+  "Return.dc.html": {
+   "x": 5440,
+   "y": 0,
+   "w": 1280,
+   "h": 720,
+   "title": "After payment: confirmed"
+  },
+  "Login.dc.html": {
+   "x": 2720,
+   "y": 1800,
+   "w": 1280,
+   "h": 720,
+   "title": "PIN login"
+  },
+  "ReturnWaitingPhone.dc.html": {
+   "x": 470,
+   "y": 4120,
+   "w": 390,
+   "h": 844,
+   "title": "After payment: waiting, phone"
+  },
+  "TopDeals.dc.html": {
+   "x": 0,
+   "y": 5000,
+   "w": 1280,
+   "h": 3501,
+   "title": "Top deals, the home page, lab look"
+  },
+  "Finder.dc.html": {
+   "x": 1360,
+   "y": 5000,
+   "w": 1280,
+   "h": 2488,
+   "title": "Find a deal, lab"
+  },
+  "PriceTruth.dc.html": {
+   "x": 2720,
+   "y": 5000,
+   "w": 1280,
+   "h": 3371,
+   "title": "Price truth, lab"
+  },
+  "Scorecard.dc.html": {
+   "x": 4080,
+   "y": 5000,
+   "w": 1280,
+   "h": 3303,
+   "title": "Scorecard, lab"
+  },
+  "Deal.dc.html": {
+   "x": 5440,
+   "y": 5000,
+   "w": 1280,
+   "h": 2521,
+   "title": "Deal page, lab"
+  },
+  "Lockup.dc.html": {
+   "x": 6800,
+   "y": 5000,
+   "w": 1280,
+   "h": 672,
+   "title": "Lockup and look switch, lab"
+  },
+  "TopDealsPixel.dc.html": {
+   "x": 0,
+   "y": 7800,
+   "w": 1280,
+   "h": 3715,
+   "title": "Top deals, the home page, pixel look"
+  },
+  "FinderPixel.dc.html": {
+   "x": 1360,
+   "y": 7800,
+   "w": 1280,
+   "h": 2605,
+   "title": "Find a deal, pixel"
+  },
+  "PriceTruthPixel.dc.html": {
+   "x": 2720,
+   "y": 7800,
+   "w": 1280,
+   "h": 3465,
+   "title": "Price truth, pixel"
+  },
+  "ScorecardPixel.dc.html": {
+   "x": 4080,
+   "y": 7800,
+   "w": 1280,
+   "h": 3384,
+   "title": "Scorecard, pixel"
+  },
+  "DealPixel.dc.html": {
+   "x": 5440,
+   "y": 7800,
+   "w": 1280,
+   "h": 2555,
+   "title": "Deal page, pixel"
+  },
+  "LockupPixel.dc.html": {
+   "x": 6800,
+   "y": 7800,
+   "w": 1280,
+   "h": 760,
+   "title": "Lockup and look switch, pixel"
+  },
+  "TopDealsPhone.dc.html": {
+   "x": 0,
+   "y": 10600,
+   "w": 390,
+   "h": 6015,
+   "title": "Top deals, the home page, lab look, phone"
+  },
+  "FinderPhone.dc.html": {
+   "x": 470,
+   "y": 10600,
+   "w": 390,
+   "h": 4525,
+   "title": "Find a deal, lab phone"
+  },
+  "PriceTruthPhone.dc.html": {
+   "x": 940,
+   "y": 10600,
+   "w": 390,
+   "h": 5054,
+   "title": "Price truth phone, lab"
+  },
+  "ScorecardPhone.dc.html": {
+   "x": 1410,
+   "y": 10600,
+   "w": 390,
+   "h": 5137,
+   "title": "Scorecard phone, lab"
+  },
+  "DealPhone.dc.html": {
+   "x": 1880,
+   "y": 10600,
+   "w": 390,
+   "h": 4254,
+   "title": "Deal page, phone, lab"
+  },
+  "TopDealsPixelPhone.dc.html": {
+   "x": 2350,
+   "y": 10600,
+   "w": 390,
+   "h": 6479,
+   "title": "Top deals, the home page, pixel look, phone"
+  },
+  "FinderPixelPhone.dc.html": {
+   "x": 2820,
+   "y": 10600,
+   "w": 390,
+   "h": 4879,
+   "title": "Find a deal, pixel phone"
+  },
+  "PriceTruthPixelPhone.dc.html": {
+   "x": 3290,
+   "y": 10600,
+   "w": 390,
+   "h": 5275,
+   "title": "Price truth phone, pixel"
+  },
+  "ScorecardPixelPhone.dc.html": {
+   "x": 3760,
+   "y": 10600,
+   "w": 390,
+   "h": 5400,
+   "title": "Scorecard phone, pixel"
+  },
+  "DealPixelPhone.dc.html": {
+   "x": 4230,
+   "y": 10600,
+   "w": 390,
+   "h": 4479,
+   "title": "Deal page, phone, pixel"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Checkout.dc.html",
+  "CheckoutPriceChanged.dc.html",
+  "Return.dc.html",
+  "Login.dc.html",
+  "ReturnWaitingPhone.dc.html",
+  "TopDeals.dc.html",
+  "Finder.dc.html",
+  "PriceTruth.dc.html",
+  "Scorecard.dc.html",
+  "Deal.dc.html",
+  "Lockup.dc.html",
+  "TopDealsPixel.dc.html",
+  "FinderPixel.dc.html",
+  "PriceTruthPixel.dc.html",
+  "ScorecardPixel.dc.html",
+  "DealPixel.dc.html",
+  "LockupPixel.dc.html",
+  "TopDealsPhone.dc.html",
+  "FinderPhone.dc.html",
+  "PriceTruthPhone.dc.html",
+  "ScorecardPhone.dc.html",
+  "DealPhone.dc.html",
+  "TopDealsPixelPhone.dc.html",
+  "FinderPixelPhone.dc.html",
+  "PriceTruthPixelPhone.dc.html",
+  "ScorecardPixelPhone.dc.html",
+  "DealPixelPhone.dc.html"
+ ],
+ "notes": {
+  "row0": {
+   "x": 0,
+   "y": -300,
+   "text": "Shopper journey",
+   "kind": "title1",
+   "maxW": 6720
+  },
+  "row1": {
+   "x": 0,
+   "y": 1500,
+   "text": "Dashboards and login",
+   "kind": "title1",
+   "maxW": 5360
+  },
+  "row2": {
+   "x": 0,
+   "y": 3820,
+   "text": "Phone",
+   "kind": "title1",
+   "maxW": 1330
+  },
+  "loop5_lab": {
+   "x": 0,
+   "y": 4700,
+   "text": "Loop 5: lab look",
+   "kind": "title1",
+   "maxW": 8080
+  },
+  "loop5_pixel": {
+   "x": 0,
+   "y": 7500,
+   "text": "Loop 5: pixel look",
+   "kind": "title1",
+   "maxW": 8080
+  },
+  "loop5_phones": {
+   "x": 0,
+   "y": 10300,
+   "text": "Loop 5: phones",
+   "kind": "title1",
+   "maxW": 4620
+  }
+ },
+ "designSystems": []
+}

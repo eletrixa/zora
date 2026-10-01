@@ -1,0 +1,11 @@
+node_modules
+.wrangler/
+dist/
+*.log
+.dev.vars
+.env*
+state/
+temp/
+__pycache__/
+.scratch-crops/
+.playwright-mcp/

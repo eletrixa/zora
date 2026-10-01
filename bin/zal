@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Command-line interface wrapper that runs bun bin/zal.ts.
+#
+# Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+# Module:  bin/zal
+# Deps:    bun, bin/zal.ts
+# Tested:  n/a
+
+exec bun "$(dirname "$0")/zal.ts" "$@"

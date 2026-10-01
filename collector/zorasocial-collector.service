@@ -1,0 +1,16 @@
+# Runs the zora collector once. Installed as a systemd user unit; the .timer fires it daily.
+#
+# Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+# Module:  collector/zorasocial-collector.service
+# Deps:    bun, collector/run.ts
+# Tested:  n/a (unit file)
+
+[Unit]
+Description=Zora Agent Lab: public price collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/groupon/zorasocial
+ExecStart=/usr/bin/env bun collector/run.ts

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Brings one finished lane into main: rebase the lane on main, run the three gates inside the
+# lane worktree, merge without fast-forward, run the gates again on main. Stops at the first
+# failure and leaves main untouched.
+#
+# Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+# Module:  bin/lane-merge
+# Deps:    git, bun
+# Tested:  n/a (the gates are the check)
+#
+# Usage: bin/lane-merge <lane>
+set -euo pipefail
+cd "$(dirname "$0")/.."
+ROOT="$(pwd)"
+LANE="${1:?usage: bin/lane-merge <lane>}"
+WT="${ZAL_WORKTREES:-$ROOT/../zorasocial-wt}/$LANE"
+[ -d "$WT" ] || { echo "ABORT: no worktree $WT" >&2; exit 1; }
+[ -z "$(git status --porcelain)" ] || { echo "ABORT: main has uncommitted changes" >&2; exit 1; }
+[ -z "$(git -C "$WT" status --porcelain)" ] || { echo "ABORT: lane $LANE has uncommitted changes:" >&2; git -C "$WT" status --short >&2; exit 1; }
+[ "$(git -C "$WT" rev-list --count main..HEAD)" -gt 0 ] || { echo "ABORT: lane $LANE has no commit" >&2; exit 1; }
+
+gates() { # directory
+  (cd "$1" && bun run typecheck >/dev/null && bun test 2>&1 | tail -4)
+}
+
+echo "== $LANE: rebase on main"
+git -C "$WT" rebase -q main
+echo "== $LANE: lane-check"
+(cd "$WT" && bun bin/lane-check.ts "$LANE")
+echo "== $LANE: gates in the lane"
+gates "$WT"
+echo "== $LANE: merge"
+git merge -q --no-ff "lane/$LANE" -m "merge lane $LANE
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+echo "== $LANE: gates on main"
+if ! gates "$ROOT"; then
+  echo "ABORT: gates fail on main after the merge; undoing the merge" >&2
+  git reset -q --hard HEAD~1
+  exit 1
+fi
+echo "merged $LANE"

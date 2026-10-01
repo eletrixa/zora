@@ -1,0 +1,22 @@
+[
+  { "text": "massage in Chicago", "expectAnyOf": ["p-massage-chi"], "expectText": ["massage"], "expectCity": "Chicago" },
+  { "text": "massages", "expectAnyOf": ["p-massage-chi", "p-massage-nyc"], "expectText": ["massage"] },
+  { "text": "mass", "expectAnyOf": ["p-massage-chi", "p-massage-nyc"], "expectText": ["mass"] },
+  { "text": "cheap oil change", "expectAnyOf": ["p-oil-chi"], "expectText": ["oil change", "oil"] },
+  { "text": "bowling for four", "expectAnyOf": ["p-bowling-chi"], "expectText": ["bowling"] },
+  { "text": "pizza dinner for two", "expectAnyOf": ["p-pizza-chi"], "expectText": ["pizza"] },
+  { "text": "yoga classes in Austin", "expectAnyOf": ["p-yoga-austin"], "expectText": ["yoga"], "expectCity": "Austin" },
+  { "text": "escape room for four", "expectAnyOf": ["p-escape-nyc"], "expectText": ["escape room", "escape"] },
+  { "text": "laser hair removal", "expectAnyOf": ["p-laser-chi"], "expectText": ["laser"] },
+  { "text": "massage yoga", "expectAnyOf": ["p-massage-chi", "p-massage-nyc", "p-yoga-austin"], "expectText": ["massage", "yoga"] },
+  { "text": "", "category": "Automotive", "expectAnyOf": ["p-oil-chi"], "expectText": ["auto", "car", "oil", "tire", "detail", "wash", "driving", "traffic", "vehicle", "inspection", "dmv"] },
+  { "text": "", "state": "IL", "expectAnyOf": ["p-massage-chi", "p-oil-chi", "p-bowling-chi", "p-pizza-chi", "p-laser-chi"], "expectState": "IL" },
+  { "text": "", "state": "New York", "expectAnyOf": ["p-massage-nyc", "p-escape-nyc"], "expectState": "New York" },
+  { "text": "", "city": "chicago", "expectAnyOf": ["p-massage-chi", "p-oil-chi", "p-bowling-chi", "p-pizza-chi", "p-laser-chi"], "expectCity": "Chicago" },
+  { "text": "massage", "maxPriceMinor": 5000, "expectAnyOf": ["p-massage-chi"], "expectText": ["massage"] },
+  { "text": "massage\" OR 1=1 --", "expectAnyOf": ["p-massage-chi", "p-massage-nyc"], "expectText": ["massage"] },
+  { "text": "something to do with kids in New York", "expectAnyOf": [], "expectText": ["kid", "family", "children"], "expectState": "New York", "live": true },
+  { "text": "wine tasting near Boston", "expectAnyOf": [], "expectText": ["wine tasting", "wine"], "live": true },
+  { "text": "amusement park tickets", "expectAnyOf": [], "expectText": ["amusement park", "theme park"], "live": true },
+  { "text": "car detailing in Dallas", "expectAnyOf": [], "expectText": ["detail"], "expectCity": "Dallas", "live": true }
+]

@@ -1,0 +1,11 @@
+Source revision: 0ce9a5a856862560a6b64400cc7829ef26d82655
+Worker version: de936880-d457-4632-9b1f-56fa9f419afa (deployed 2026-10-01 13:37 UTC)
+
+Gates run by the exporter inside this exported tree before its commit, 2026-10-01T15:00:01.588Z.
+$ bun run typecheck
+$ tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json
+$ bun test
+ 1103 pass
+ 0 fail
+ 3245 expect() calls
+Ran 1103 tests across 77 files. [4.50s]

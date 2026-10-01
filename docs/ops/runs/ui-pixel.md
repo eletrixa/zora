@@ -1,0 +1,6 @@
+<!-- Module: docs/ops/runs/ui-pixel.md · Tested: n/a -->
+| When (UTC) | What | Lane | Model | Billed cost |
+|---|---|---|---|---|
+| 2026-10-01 00:45 | Built public/static/pixel.css (the Zora pixel look as a second stylesheet, every rule scoped and every app.css token retinted per design/LANGUAGE.md) with test/ui/components/pixel-css.test.ts (21 tests) | ui-pixel | sonnet (Claude Code subagent, Max subscription) | subscription, no per-run bill |
+| 2026-10-01 01:45 | Round 2 fixes: the home-page skyline vs. the quiet strip (a new --skyline token, the header strip in real flow, full bleed), the switch labels in Silkscreen with the divider confined inside the track, squared verdict banner, Silkscreen eyebrow, amber lead-tile rule; 9 new tests (30 total) | ui-pixel | sonnet (Claude Code subagent, Max subscription) | subscription, no per-run bill |
+| 2026-10-01 02:15 | Round 3 fix: the header strip's flex-basis widened to calc(100% + 112px) so it reaches the padded edge at 1280px, the header's own border-bottom dropped so the strip's rule is the only line, the 390px override keeps flex-basis:100% for 0 bleed; 2 new tests (32 total) | ui-pixel | sonnet (Claude Code subagent, Max subscription) | subscription, no per-run bill |

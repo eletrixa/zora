@@ -1,0 +1,26 @@
+ok    robots.txt disallows everything and every answer carries noindex
+ok    the finder has nothing for a password manager to save
+ok    the finder opens with today's picks, never an empty page
+ok    GET /api/v1/search "massage in Chicago" returns at least 3 deals with the price rule
+ok    the finder page for "massage in Chicago" shows cards with price, promo sentence, city and state
+ok    the deal page shows options with prices, locations, terms, price history and a checkout button per option
+ok    GET /api/v1/deals/:id answers the same deal
+skip  web checkout and API checkout (--no-carts)
+ok    the return page waits and polls for an order Groupon does not know yet
+ok    GET /api/v1/orders/:uuid answers not_found for an unknown order
+ok    the price truth page has today's numbers in all four sections
+ok    Price truth's Options by gap bands add up to its caption's promo count, or say when they arrive
+ok    the scorecard shows today's run with age, pass rate, failing steps, latency and findings
+ok    the home page opens with Top deals: 20 real deals for the default pair, never empty
+ok    a chosen city and category (New York, NY, beauty-and-spas) returns 20 ranked deals or says why fewer
+ok    sort by percent puts the largest percent first, sort by amount the largest amount
+ok    every deal shows the original above the price to pay; the promo price is only in the footnotes
+ok    a city outside the list answers a sentence, not a 500
+ok    /top-deals redirects for good to the home page and keeps the query
+ok    the nav of every page lists Top deals, Find a deal, Price truth and Scorecard, and carries the look switch
+ok    the finder offers every city and category of the pickers; Top deals offers the same cities and its city's categories
+ok    a finder search with a city and a category answers cards in that city and category
+ok    the look switch sets the cookie and the next page renders the pixel look
+ok    MCP tools/list and tools/call search_deals answer
+
+23 passed, 0 missed

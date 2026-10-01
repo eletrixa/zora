@@ -1,0 +1,3566 @@
+Groupon Partner Storefront API
+
+Recharge your Body. Massage, facials, spa & fitness up to 80% off 
+
+Ends in--:--:--Use code RELAX </landing/sale>
+
+ <https://www.groupon.com/>
+
+Search 
+massagemassagespaoil changetheatrenailsrestaurantbowlingcinema
+App
+Sell on Groupon <https://www.groupon.com/merchant>
+
+ <https://www.groupon.com/wishlist>
+
+Fall Recharge <https://www.groupon.com/landing/sale>
+
+Beauty & Spas <https://www.groupon.com/local/beauty-and-spas>
+
+Things To Do <https://www.groupon.com/local/things-to-do>
+
+Auto & Home <https://www.groupon.com/local/automotive>
+
+Food & Drink <https://www.groupon.com/local/food-and-drink>
+
+Gifts <https://www.groupon.com/gift>
+
+Local <https://www.groupon.com/local>
+
+Travel <https://www.groupon.com/travel>
+
+Goods <https://www.groupon.com/goods>
+
+Coupons <https://www.groupon.com/coupons>
+
+# Groupon Partner Storefront API
+
+The Groupon Partner Storefront API lets partners and influencers list Groupon deals on their own website, mirror a shopper's cart in Groupon, and send the shopper to Groupon's checkout to pay. Currently only US inventory is exposed.
+
+These pages are written for the people building the integration and for the AI coding assistant they use to build it.
+
+## At a glance
+
+- US deals only. Voucher deals only: deals that need a time-slot booking are not offered.
+
+- You keep the catalog in your own database by syncing it; there is no search endpoint.
+
+- Get your API key yourself with POST /octo-gateway/v1/register. No email needed.
+
+- Checkout always happens on Groupon's page.
+
+- Earning commission is optional: add a CJ publisher ID after you register.
+
+- Production is the only environment.
+
+Version 7. Changes since version 6: self-registration (POST /octo-gateway/v1/register) and reading your registration (GET /octo-gateway/v1/partners/me); CJ is an optional step after you register; optional logo and redirect URL; order statuses PENDING and CANCELLED are now returned; clearer rules for the return redirect, unknown order statuses and retries.
+
+## The three API groups
+
+ | API group
+ | Purpose
+
+ | Products API
+ | Pull Groupon deals into your own database and list them on your site.
+
+ | Cart APIs
+ | Mirror your shopper's cart in Groupon, and get the checkout link.
+
+ | Booking API
+ | After payment, read the order's status and the links to the shopper's vouchers.
+
+## Where to start
+
+- How it works: the end-to-end flow, checkout, and earning commission with CJ.
+
+- Onboarding and API key: register with one call to get your key.
+
+- Rules for your integration: the rules every integration must follow.
+
+- The guides for syncing the catalog, managing the cart and checkout.
+
+- The API reference for every endpoint's exact request and response.
+
+AI Builder Pack <https://www.groupon.com/hubs/ai-builder-pack>Support
+
+Contents
+
+- Getting started
+- How it works
+
+- Onboarding and API key
+
+- Conventions
+
+- Glossary of terms
+
+- Guides
+- Rules for your integration
+
+- Syncing the catalog
+
+- Managing the cart
+
+- Checkout and order confirmation
+
+- Handling errors
+
+- Suggested data model
+
+- Build checklist
+
+- API reference
+- API reference
+
+- Products
+
+- Carts
+
+- Cart items
+
+- Partner bookings
+
+- Supplier
+
+- Help
+- Support
+
+# How it works
+
+You run a website. Groupon gives you three API groups: the Products API, the Cart APIs and the Booking API.
+
+## End-to-end flow
+
+ 1. Get a key POST /register -> your API key
+ 2. Sync catalog GET /products (full load once, then deltas every few hours) -> your DB
+ 3. Shopper browses Your site renders deals from YOUR database
+ 4. Add to cart First item: POST /carts -> you receive cart `id` + `buyLink`
+ Later edits: POST/PATCH/DELETE on /carts/{cartId}/items
+ 5. Buy now Your "Buy now" button href = the latest `buyLink` from any cart response
+ 6. Pay at Groupon Shopper pays on Groupon's checkout page (partner.groupon.com; shows your logo
+ if you gave one)
+ 7. Return Groupon redirects the shopper to YOUR redirect URL
+ with ?grouponOrderUuid=<uuid>
+ 8. Confirm GET /partner-bookings/{grouponOrderUuid} -> status + one
+ "View on Groupon" link per purchased unit
+
+Paths are relative to https://api.enc.groupon.com/octo-gateway/v1. Each step is covered in the guides: onboarding, syncing the catalog, managing the cart and checkout and order confirmation.
+
+You keep two carts in step: the one on your site, and its mirror in Groupon. Groupon's copy is the one that gets paid for.
+
+## Checkout, and earning commission with CJ
+
+Every partner registers the same way and uses the same checkout: set your Buy now button's href to the buyLink from the latest cart response, verbatim. buyLink is present on every cart response. Never build the checkout URL yourself.
+
+To earn commission, add a CJ (Commission Junction) publisher ID after you register (Earning commission with CJ). It is optional, and your code does not change: only what buyLink contains changes.
+
+ | 
+ | Default
+ | After you add CJ
+
+ | What buyLink is
+ | The Groupon checkout URL for the cart, https://partner.groupon.com/checkout/cart/{cartId}.
+ | A CJ affiliate tracking link carrying your publisher ID. It redirects the shopper to Groupon's checkout page for the cart.
+
+ | Commission
+ | None.
+ | Tracked and paid through CJ, monthly: 7% of the net sale when the shopper is new to Groupon, 1% when they are an existing Groupon customer. A refund cancels the commission on that sale. The shopper must reach checkout through buyLink; any other route earns nothing.
+
+The checkout page is always on partner.groupon.com, and shows your logo if you gave one (Logo and redirect URL).
+
+# Onboarding and API key
+
+Register yourself with one call: POST /octo-gateway/v1/register. It needs no API key. Send the fields below as JSON. The response carries your registration (partner) and your API key (token); send token as the g-api-key header on every other call. You only need to email Groupon if you want to earn commission through CJ, after you register (see Earning commission with CJ).
+
+curl -X POST https://api.enc.groupon.com/octo-gateway/v1/register \
+ -H 'Content-Type: application/json' \
+ -H 'User-Agent: MyStore/1.0 (+https://mystore.example)' \
+ -d '{
+ "displayName": "My Store",
+ "partnerContactName": "Alex Doe",
+ "partnerContactEmail": "[email protected] </cdn-cgi/l/email-protection>",
+ "inventoryCountries": ["US"],
+ "inventoryStates": ["Illinois"],
+ "category1": ["things-to-do"],
+ "logoUrl": "https://mystore.example/logo.png",
+ "redirectUrl": "https://mystore.example/thanks"
+ }'
+
+The response is { "partner": { "partnerId": "...", ... your registration ... }, "token": "grpn_..." }.
+
+A person decides these, not the coding assistant: the display name, contact name and email, logo and redirect URL. Shoppers see them, and Groupon uses them to reach you.
+
+- Inventory scope is optional. Omit inventoryStates for every US state and category0, category1 and category2 for every category. Omit inventoryCountries for ["US"].
+
+- Register calls are limited to 5 per IP address per hour and 100 per hour across all callers, counted in clock hours. Groupon can change these numbers. Calls that fail validation count toward the limit, so check your fields against the table below before calling. A successful call returns x-ratelimit-limit, x-ratelimit-remaining and x-ratelimit-reset headers. Over the limit the response is HTTP 429 with error: "RATE_LIMITED"; wait for the Retry-After header before trying again.
+
+- An invalid field returns BAD_REQUEST, and errorMessage names the fields to fix. Fix them all before calling again. A body that is not valid JSON, or has no displayName, partnerContactName or partnerContactEmail, is rejected earlier with HTTP 400 and code: "invalid_argument" instead (Shape C).
+
+- Do not blind-retry register. Every successful call creates a new partner and a new API key. If a call times out, email req.partner.api@groupon.com <mailto:req.partner.api@groupon.com> before registering again.
+
+- If self-registration is closed, the call returns error: "SELF_REGISTRATION_CLOSED"; email req.partner.api@groupon.com <mailto:req.partner.api@groupon.com> instead.
+
+Handle the key as a secret from the first response. Write token straight to your server's secret store or environment. Never print it into chat, logs, tickets or a repository. It is shown once and cannot be read again.
+
+ | #
+ | Field
+ | Required
+ | Rules
+
+ | 1
+ | Partner / display name (displayName)
+ | Yes
+ | Shown to shoppers on Groupon's checkout page. When you register yourself: at most 60 characters, Latin letters only, and no "Groupon", web address, email address, phone number or invisible characters. A name that breaks a rule is rejected with BAD_REQUEST naming the rule. When Groupon registers you: up to 255 characters.
+
+ | 2
+ | Partner contact name (partnerContactName)
+ | Yes
+ | Up to 255 characters.
+
+ | 3
+ | Partner contact email (partnerContactEmail)
+ | Yes
+ | A monitored address.
+
+ | 4
+ | Inventory scope — states (inventoryStates)
+ | No
+ | Full US state names, exactly as written, e.g. Illinois, New York. Not IL. Leave empty for all US states. See Inventory scope values.
+
+ | 5
+ | Inventory scope — categories (category0, category1, category2)
+ | No
+ | Groupon category permalinks, one list per depth. category0: local (its only value). category1: e.g. things-to-do. category2: e.g. massage. A value at the wrong depth is rejected. Leave empty for all categories. See Inventory scope values.
+
+ | 6
+ | Logo URL (logoUrl)
+ | No
+ | Absolute https:// URL. Shown on Groupon's checkout page so the shopper sees the order came from you (Logo and redirect URL).
+
+ | 7
+ | Post-checkout redirect URL (redirectUrl)
+ | No
+ | Absolute https:// URL with no username or password in it. After payment, Groupon sends the shopper here with grouponOrderUuid added as a query parameter. Without it, the shopper ends on Groupon's receipt page.
+
+ | 8
+ | Inventory scope — countries (inventoryCountries)
+ | No
+ | Omit for ["US"], the only market available.
+
+ | 9
+ | Page-size cap (maxPageSize)
+ | No
+ | A positive whole number: the most products one GET /products page returns to you. Omit for the service default.
+
+Your inventory scope is enforced by Groupon. The Products API only ever returns deals inside it, and naming a state or category outside it is rejected.
+
+## Logo and redirect URL
+
+The logo URL and the redirect URL are optional, and each works on its own. Checkout always runs on partner.groupon.com.
+
+ | Setting
+ | Set
+ | Not set
+
+ | Logo URL
+ | Checkout shows your logo.
+ | Checkout shows no logo.
+
+ | Redirect URL
+ | After payment, the shopper returns to your redirect URL with grouponOrderUuid added.
+ | After payment, the shopper ends on Groupon's receipt page.
+
+## Earning commission with CJ (optional)
+
+To earn commission, email req.partner.api@groupon.com <mailto:req.partner.api@groupon.com> after you register, with your partner id and your CJ (Commission Junction) publisher ID (PID). You must already be an approved CJ publisher, and a PID can be on one registration only. This is the only step that needs email.
+
+Once Groupon adds your PID, buyLink becomes a CJ affiliate link and CJ pays your commission. Your code does not change.
+
+## Inventory scope values
+
+These are the only values Groupon accepts for your inventory scope. Use the same values for the state, category0, category1 and category2 filters on the Products API. Values are case-sensitive: send them exactly as listed. In your registration, a value that is not on the list is rejected with BAD_REQUEST. As a Products API filter, a value that is not on the list, such as a state abbreviation, returns an empty page if your registration has no scope at that depth, and FORBIDDEN if it has one. The category lists follow Groupon's category taxonomy and can change over time.
+
+### States (50)
+
+Alabama, Alaska, Arizona, Arkansas, California, Colorado, Connecticut, Delaware, Florida, Georgia, Hawaii, Idaho, Illinois, Indiana, Iowa, Kansas, Kentucky, Louisiana, Maine, Maryland, Massachusetts, Michigan, Minnesota, Mississippi, Missouri, Montana, Nebraska, Nevada, New Hampshire, New Jersey, New Mexico, New York, North Carolina, North Dakota, Ohio, Oklahoma, Oregon, Pennsylvania, Rhode Island, South Carolina, South Dakota, Tennessee, Texas, Utah, Vermont, Virginia, Washington, West Virginia, Wisconsin, Wyoming
+
+### category0: top-level category
+
+local
+
+### category1: categories (38)
+
+air-inclusive, all-inclusive, auto-and-home-improvement, automotive, baby-kids-and-toys, beach-destinations, beauty-and-spas, casinos, city, cruises, culinary, electronics, entertainment-and-media, family-trips, food-and-drink, for-the-home, gift-cards, grocery-and-household, health-and-beauty, health-and-fitness, home-improvement, hotel-travel, jewelry-and-watches, luxury, mens-clothing-shoes-and-accessories, outdoor-activities-recreation, personal-services, pet-supplies, retail, romantic, spa-and-wellness, sports-and-outdoors, things-to-do, toys, unique-lodging, v1-personalized-items, waterparks, womens-clothing-shoes-and-accessories
+
+### category2: subcategories (207)
+
+Show all 207 values
+
+africa-and-middle-east, alcohol, apparel-local, appliances-goods, art, art-and-home-decor, arts-and-crafts, arts-and-entertainment-local, australia-and-nz, auto-cleaning, auto-parts-and-accessories, auto-repair, baby-gear, baby-toys, babys-fashion, bars, bath, bath-and-body, bath-and-potty, bedding, bird-supplies, blow-outs-and-styling, books-music-and-movies, breweries-wineries-and-distilleries, brow-and-lash, building-sets, cafes-and-treats, camera-video-and-surveillance, camping, camping-trips, car-electronics-and-gps, cat-supplies, cbd, cell-phones-and-accessories, charity, child-car-seats, childrens-books, childrens-jewelry, classes, cleaning-services, clothing-and-shoes, collectibles, computers-and-tablets, consultants, contractors, cosmetic-procedures, cosmetics, custom-baby-and-kids-items, custom-household-essentials, custom-jewelry, custom-kitchen-accessories, custom-novelty-items, custom-photo-prints, dental, diamond-jewelry, dog-supplies, dolls-and-action-figures, drinks, educational-toys, electrical, electronic-toys, electronics-local, electronics-repair, europe, event-rental-services, exercise-and-fitness, fan-shop, fashion-jewelry, fine-metal-jewelry, fire-pits-and-outdoor-heaters, fitness-classes, floor-care-and-cleaning, flooring, flowers-sweets-and-gift-baskets, food, fragrances, fun-and-leisure-activities, furniture, furniture-stores, games-and-puzzles, gemstone-and-pearl-jewelry, golf-goods, groceries-and-markets, gyms, hair-removal, hair-salons, hand-and-power-tools, health-and-beauty-local, health-and-safety, health-care, heating-and-cooling, home-and-garden-local, home-improvement-goods, home-repairs, hvac-and-electrical, interior-design, jewelry-accessories-and-storage, kids-activities, kids-bikes-and-ride-on-toys, kids-local, kitchen-and-dining, lab-grown-diamond-jewelry, lawn-and-garden, local-services, luggage, magazines, makeup, massage, massage-and-relaxation, maternity-clothes, medical, men, mens-accessories, mens-clothing, mens-jewelry, mens-shoes, mountains, movies-and-tv, musical-instruments, nail-salons, natural-medicine, nightlife, office-and-school-supplies, outdoor-decor, outdoor-grills-and-accessories, outdoors, parking, parks, party-supplies, patio-and-garden, patio-and-garden-products, personalized-bags, personalized-clothing-and-accessories, personalized-items, personalized-pets-items, personalized-stationery, pets, photo-book, photography, plumbing, plus-size-womens-clothing, portable-audio, pretend-play, recreation, remodeling, restaurants, rv-camper, salons, seasonal-decor, sightseeing-and-tours, ski-resorts, skin-care, small-animal-supplies, smart-home, software, spa, spa-getaways, sports, sports-and-outdoor-activities, sports-local, strollers, subscriptions, tanning, team-sports, television-and-home-theater, tickets-and-events, tobacco, toddler-and-baby-toys, toddler-and-kids-fashion, transportation, usa, v-books, v-food, v-heating-and-cooling, v-office-and-school-supplies, v-outdoor-power-equipment, v1-aromatherapy, v1-baby-feeding, v1-dental-care, v1-diapers, v1-gaming, v1-hair-care, v1-home-automation, v1-lighting, v1-maternity-clothes, v1-mattresses, v1-nursery, v1-outdoor-garden-decor, v1-outdoor-play, v1-personal-care, v1-personalized-home-decor, v1-sexual-health, v1-shaving, v1-skin-care, v1-storage-and-organization, v2-cycling, v2-gaming, v3-vitamins-and-supplements, vision, watches, wearable-technology, weight-loss, weight-loss-v2, womens-accessories, womens-clothing, womens-intimates, womens-shoes
+
+## The API key
+
+- Format: grpn_ followed by 8 hex characters, _, and 56 hex characters.
+
+- It is shown once, as token in the register response. Store it in your server's secret store.
+
+- If it leaks, email req.partner.api@groupon.com <mailto:req.partner.api@groupon.com> to have it rotated. The old key stops working immediately and your partner id stays the same.
+
+Once you have the key, call GET /octo-gateway/v1/partners/me with it to see your registration (everything above except the key). To change anything there, email req.partner.api@groupon.com <mailto:req.partner.api@groupon.com>. You can also call Get your supplier record to confirm your integration is pointed at the right supplier.
+
+# Conventions
+
+## Base URL
+
+ | Environment
+ | Base URL
+
+ | Production
+ | https://api.enc.groupon.com
+
+Every endpoint lives under /octo-gateway/v1/. There is one environment: you build and test against production with your API key.
+
+The OpenAPI document for this API is at https://api.enc.groupon.com/octo-gateway/v1/openapi.json <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>.
+
+!
+
+Endpoints under /octo/v1/ are deprecated aliases of the same endpoints under /octo-gateway/v1/, kept for integrations built before the rename and removed on 2027-03-31. POST /octo-gateway/v1/register and GET /octo-gateway/v1/partners/me have no /octo/v1/ alias. Use /octo-gateway/v1/.
+
+## Authentication
+
+Send the key in the g-api-key header on every request, except POST /octo-gateway/v1/register.
+
+g-api-key: grpn_12ab3cd4_<56 hex characters>
+
+It is not a Bearer token. Authorization: Bearer ... returns 401.
+
+## Headers
+
+ | Header
+ | When
+ | Value
+
+ | g-api-key
+ | Always, except on POST /octo-gateway/v1/register
+ | Your API key
+
+ | Content-Type
+ | POST, PATCH
+ | application/json
+
+ | x-request-id
+ | Recommended
+ | A UUID you generate per request. Groupon echoes it as requestId in error bodies. Quote it when contacting support.
+
+ | User-Agent
+ | Always
+ | For example mystore/1.0 (+https://mystore.example). generic client defaults such as python's are rejected with 403, by the api and by groupon.com.
+
+## Identifiers
+
+ | Name
+ | Where it comes from
+ | Used as
+
+ | Product id
+ | Products API
+ | productId in cart requests
+
+ | Option id
+ | Products API, each entry of a product's options
+ | optionId in cart requests, and itemId in cart item URLs
+
+ | Cart id
+ | Create a cart response
+ | {cartId} in every later cart call
+
+ | grouponOrderUuid
+ | Query parameter on your redirect URL
+ | {uuid} in the Booking API
+
+## Money
+
+Money is always an integer in minor units (cents for USD). 2500 with currencyPrecision: 2 means $25.00. Display amount = amount / 10^currencyPrecision.
+
+## Market
+
+Currently only US inventory is exposed: every deal the API returns is a US deal. Always send country=US.
+
+# Glossary of terms
+
+ | Term
+ | Meaning
+
+ | Partner id
+ | Your stable id at Groupon (partnerId), returned when you register. Quote it when you contact Groupon.
+
+ | Self-registration
+ | Getting your API key with POST /octo-gateway/v1/register. Every new partner registers this way.
+
+ | Product
+ | A Groupon deal, returned by the Products API. Its id is the productId in cart requests.
+
+ | Option
+ | One purchasable variant of a product, for example "One 60-Minute Massage". Its id is the optionId in cart requests and the itemId of the cart line.
+
+ | Unit
+ | What the shopper buys one of within an option. Every unit of an option carries the same price.
+
+ | Minor units
+ | Integer money amounts in the currency's smallest unit (cents for USD). Divide by 10^currencyPrecision to display.
+
+ | retail
+ | The per-unit price the shopper pays. Send it as expectedPrice in cart requests.
+
+ | original
+ | The strike-through price.
+
+ | Discounted price
+ | A promotional price the shopper gets by entering a promo code on Groupon's checkout page. Informational only; cart totals use retail.
+
+ | Inventory scope
+ | The US states and categories you registered at onboarding. The Products API only returns deals inside it.
+
+ | Walk
+ | Reading every page of one products query, following nextCursor until hasMore is false.
+
+ | Cursor
+ | An opaque token for the next page of a walk. Valid for 24 hours; send it back exactly as received.
+
+ | Full load / delta refresh
+ | Reading the whole catalog once, then only what changed since your last refresh, using updatedSince. See Syncing the catalog.
+
+ | Listable
+ | A product you show: status is active, availabilityRequired is false, and at least one option is not inactive.
+
+ | Cart
+ | Groupon's mirror of your shopper's cart. Created together with its first item. It can later become empty when you remove its last line.
+
+ | Line / cart item
+ | One option in a cart, with a quantity. Its id equals the optionId.
+
+ | buyLink
+ | The checkout URL on every cart response. Use the latest one verbatim.
+
+ | CJ / PID
+ | Commission Junction, the affiliate network, and your publisher ID in it. Adding your PID after you register is how you earn commission (Earning commission with CJ).
+
+ | grouponOrderUuid
+ | The order id Groupon adds to your redirect URL after payment.
+
+ | Booking
+ | The order as the Booking API reports it: a status and one item per product and option bought, each with one unit item per purchased unit.
+
+ | Unit item
+ | One purchased unit of a booking item, with its own status and "View on Groupon" link.
+
+ | requestId
+ | The id of a failed request, from the error body. Quote it when contacting support.
+
+# Rules for your integration
+
+Every integration, and the AI coding assistant building it, must follow these rules.
+
+- All Groupon API calls MUST be made from the partner's backend server. Never put the API key in browser JavaScript, a mobile app, or a public repository.
+
+- Never construct the checkout URL yourself. Always use the buyLink string from the most recent cart response, verbatim. This holds with or without CJ.
+
+- Money is always an integer in minor units (cents for USD). 2500 with currencyPrecision: 2 means $25.00. Display amount = amount / 10^currencyPrecision.
+
+- Treat cursor values as opaque. Send them back exactly as received, URL-encoded.
+
+- Send identical query parameters on every page of one products walk (only cursor changes).
+
+- Read error codes with one helper (Handling errors).
+
+- Do not blind-retry Add items to a cart. It adds quantity, so a retry can double it. On a timeout, read the cart and reconcile.
+
+- Do not blind-retry register. Every successful call creates a new partner and API key. If a call times out, email req.partner.api@groupon.com <mailto:req.partner.api@groupon.com> before registering again. Write the key straight to your server's secret store; never print it into chat, logs or a repository.
+
+- Currently only US inventory is exposed: every deal the API returns is a US deal. Always send country=US.
+
+- Send your own User-Agent header on every request, for example MyStore/1.0 (+https://mystore.example). Generic client defaults such as Python's are rejected with 403, by the API and by groupon.com.
+
+# Syncing the catalog
+
+The Products API returns one page of deals inside your inventory scope. Load the catalog into your own database once, then pull only what changed every few hours. Your site renders deals from your database, never live from Groupon.
+
+## How to use the fields
+
+The full response shape, with every field, is in the Products API reference.
+
+- Price of an option = the first pricing entry of the option's first unit. Every unit of an option carries the same price.
+
+- What to list: show a product only when status is active and availabilityRequired is false. Show an option only when its active is not false (null means unknown: treat it as sellable).
+
+- sold_out and expired products cannot be bought. expired also covers deals Groupon has deactivated.
+
+- Products with availabilityRequired: true need a time-slot booking and cannot be added to a cart. They are rare. Skip them.
+
+- Quantity limits: enforce minUnits and maxUnits in the option's restrictions (null maximum = no maximum) in your UI.
+
+- discountedPrice is a promotional price the shopper gets by entering promoCode on Groupon's checkout page before endDate. It is informational: show it as "Use code SAVE15 at checkout". Cart totals always use retail. It can be null at any time.
+
+- Images: each media entry's role is a size name: small, medium, large, extra_large or wide_crop. Every entry is the same picture at a different size, and not every size is present on every deal. Pick by role (for example large for a product page, medium for a grid), falling back to the entry with the largest width. width and height can be null.
+
+- A page can contain fewer products than limit, or even none, while hasMore is true. Always keep paging until hasMore is false.
+
+## Keeping your catalog fresh
+
+Deals keep changing in Groupon: prices move, and deals are activated and deactivated. Load the catalog once, then pull only what changed every few hours using updatedSince. You must store the time of your last refresh so the next pull knows where to start.
+
+### Step 1: initial full load, once
+
+params = { country: "US", limit: 10 } # no updatedSince
+cursor = none
+repeat:
+ page = GET /octo-gateway/v1/products?params (+ cursor if set)
+ upsert every product in page.products by its id
+ cursor = page.nextCursor
+until page.hasMore == false
+lastRefreshAt = page.timestamp - 10 minutes # the final page's timestamp; persist ONLY after the whole walk succeeds
+
+### Step 2: delta refresh, every few hours
+
+params = { country: "US", limit: 10, updatedSince: lastRefreshAt } # do NOT send active
+cursor = none
+repeat:
+ page = GET /octo-gateway/v1/products?params (+ cursor if set)
+ upsert every product in page.products by its id # replace options, prices, status
+ cursor = page.nextCursor
+until page.hasMore == false
+lastRefreshAt = page.timestamp - 10 minutes # the final page's timestamp; persist ONLY after the whole walk succeeds
+
+- Store lastRefreshAt durably (a database row). If a walk fails part-way, do not advance it: restart the walk from the previous lastRefreshAt.
+
+- The 10-minute overlap is intended. Upserts are idempotent, so re-reading a deal is harmless, and missing one is not.
+
+- Take the time from the final page's timestamp (Groupon's clock), not your own clock: an updatedSince in the future is rejected with BAD_REQUEST.
+
+- Do not send active=true on a delta. A deal that was deactivated since your last refresh comes back with a status other than active; you need that row to stop listing it.
+
+- After each upsert, recompute whether the product is listable (see How to use the fields).
+
+- A delta can legitimately return the whole catalog. When a Groupon promotion starts, many prices change at once without touching each deal's own update time, so Groupon ignores updatedSince for that walk. The decision is made once, on the first page, and carried in the cursor, so a walk is never half incremental and half full. Your code must handle a delta of any size.
+
+- You can repeat the full load at any time, for example to rebuild your database.
+
+## Rules for every walk
+
+- Page sequentially. Do not request pages in parallel.
+
+- Send the same parameters on every page of a walk. Only cursor changes. Changing a filter mid-walk invalidates the cursor.
+
+- A cursor is valid for 24 hours.
+
+- If a page returns the error BAD_REQUEST with a cursor message (for example malformed cursor, invalid cursor signature or an expired cursor), discard the cursor and restart that walk from page 1.
+
+- On INTERNAL_SERVER_ERROR (which arrives as HTTP 400), a 5xx, a network error or 429: retry the same page with exponential backoff (2 s, 4 s, 8 s, up to 5 tries). If the response has a Retry-After header, wait at least that many seconds first.
+
+- The catalog in your database is a cache. The cart APIs re-check price and availability live, so they are the final authority at add-to-cart time.
+
+## Example request
+
+curl -s "https://api.enc.groupon.com/octo-gateway/v1/products?country=US&limit=10&active=true" \
+ -H "g-api-key: $GROUPON_API_KEY" -H "User-Agent: MyStore/1.0 (+https://mystore.example)" \
+ -H "x-request-id: $(uuidgen)"
+
+# Managing the cart
+
+A Groupon cart is created together with its first item: POST /carts needs at least one item, and an empty items array is rejected with BAD_REQUEST. After that, a cart can become empty: removing its last line keeps the cart and returns it with itemCount: 0.
+
+ | Operation
+ | Endpoint
+ | When
+
+ | Create cart
+ | POST /carts
+ | Shopper adds the first item
+
+ | Read cart
+ | GET /carts/{cartId}
+ | Refresh prices and availability, e.g. on cart page load
+
+ | Add items
+ | POST /carts/{cartId}/items
+ | Shopper adds another item
+
+ | Change quantity
+ | PATCH /carts/{cartId}/items/{itemId}
+ | Shopper changes a quantity
+
+ | Remove item
+ | DELETE /carts/{cartId}/items/{itemId}
+ | Shopper removes a line
+
+ | Abandon cart
+ | DELETE /carts/{cartId}
+ | Shopper empties the cart, or the session ends
+
+Paths are relative to https://api.enc.groupon.com/octo-gateway/v1. Every operation except Abandon returns the full cart, including a fresh buyLink. The cart's fields are in the Carts reference.
+
+Limits: at most 20 different options per cart; quantity 1 to 100 per line.
+
+Store the cart id against the shopper's session on your server. Only your API key can read or change a cart it created; any other cart id returns INVALID_CART_ID.
+
+## Creating a cart
+
+curl -s -X POST "https://api.enc.groupon.com/octo-gateway/v1/carts" \
+ -H "g-api-key: $GROUPON_API_KEY" -H "User-Agent: MyStore/1.0 (+https://mystore.example)" -H "Content-Type: application/json" \
+ -d '{
+ "country": "US",
+ "items": [{
+ "productId": "0b6f7a52-3c1d-4e8a-9f20-5d7c1a2b3c4d",
+ "optionId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+ "quantity": 2,
+ "expectedPrice": 4500
+ }]
+ }'
+
+All items are validated before anything is added. If any item fails, nothing is added and no cart is created.
+
+About expectedPrice: send the per-unit price your site is showing. If Groupon's live price differs, the call fails with PRICE_MISMATCH (HTTP 409) and tells you the current price. Update your database and your UI, ask the shopper to confirm, then retry with the new price. Without expectedPrice, the shopper may see a different price at checkout than on your site.
+
+## Changing the cart
+
+- Read re-prices and re-validates each line live. Call it when your cart page loads, and before showing the Buy now button after a long idle period.
+
+- Add items: if the cart already has a line for the same option, its quantity is increased by quantity. This call is therefore not idempotent: see rule 7.
+
+- Change quantity: itemId is the id of the line in the cart (it equals the optionId). quantity is the new absolute quantity, not a delta; 0 is rejected, use Remove instead. Because it sets an absolute value, it is safe to retry.
+
+- Remove item returns the updated cart. Removing the last line returns a cart with itemCount: 0.
+
+- Abandon returns no body. After a successful abandon, discard the cartId and use a new cart (POST /carts) for anything the shopper adds next. Do not send further calls on an abandoned cartId. Adding items to an abandoned or purchased cart does not fail: it silently starts a new, empty cart under the same id, and the shopper's earlier lines are lost. Also discard the cartId once an order has been placed from it (checkout).
+
+## Using the cart response
+
+- After every cart call, overwrite your local cart with the response. Groupon's copy is authoritative for quantity, price and availability.
+
+- buyLink: set your Buy now button's href to this exact string from the latest response, with or without CJ. Open it in the same tab or a new tab; do not fetch it server-side, and do not rewrite it.
+
+- available: false: the line cannot be bought. Show unavailableReason to the shopper, and remove the line before sending them to checkout. Also mark that product or option not listable in your database.
+
+- messages are non-fatal warnings about this response:
+
+- price_unavailable: a line's live price could not be resolved (pricing is null; the line is excluded from totals).
+
+- item_declined: Groupon declined to add an item even though the call returned 200. The item is not in items. Tell the shopper it could not be added.
+
+- Always compare items in the response with what you asked for. A successful 200 does not guarantee every requested line was added.
+
+- grandTotal in totals excludes tax and any promo code. The final amount is shown on Groupon's checkout page.
+
+- A cart that no longer exists (for example after you abandon it, or after an order is placed from it):
+
+- Reading it returns 200 with an empty cart (itemCount: 0).
+
+- Changing or removing one of its lines returns INVALID_PRODUCT_ID (HTTP 404).
+
+Recovery: when a cart you expect to hold items comes back with itemCount: 0, or a change to a line returns INVALID_PRODUCT_ID, or any cart call returns INVALID_CART_ID, treat the cart as gone. Create a new cart with POST /carts from your local copy of the shopper's cart, store the new cartId in place of the old one, and use the new cart's buyLink.
+
+## buyLink with and without CJ
+
+The rest of the cart is the same with and without CJ. Only buyLink differs. The examples below show only the id, buyLink, partner and itemCount fields; every other field is as described in the Carts reference.
+
+After you add CJ: an affiliate tracking link. The shopper passes through CJ, which records your publisher ID, and is redirected to Groupon's checkout page for the cart.
+
+{
+ "id": "3f2b8c1e-5a4d-4b7c-9e10-2a6f8d9c0b11",
+ "buyLink": "https://www.jdoqocy.com/click-7654321-15230314?sid=3f2b8c1e-5a4d-4b7c-9e10-2a6f8d9c0b11&url=https%3A%2F%2Fpartner.groupon.com%2Fcheckout%2Fcart%2F3f2b8c1e-5a4d-4b7c-9e10-2a6f8d9c0b11",
+ "partner": {
+ "partnerId": "9d1e...",
+ "name": "Your Display Name"
+ },
+ "itemCount": 1
+}
+
+Without CJ (the default): the direct checkout URL for the cart, on partner.groupon.com. The shopper lands on Groupon's checkout page straight away. No commission is tracked.
+
+{
+ "id": "3f2b8c1e-5a4d-4b7c-9e10-2a6f8d9c0b11",
+ "buyLink": "https://partner.groupon.com/checkout/cart/3f2b8c1e-5a4d-4b7c-9e10-2a6f8d9c0b11",
+ "partner": {
+ "partnerId": "9d1e...",
+ "name": "Your Display Name"
+ },
+ "itemCount": 1
+}
+
+Do not branch your code on the shape of buyLink. Treat it as an opaque URL on both paths.
+
+# Checkout and order confirmation
+
+## Sending the shopper to checkout
+
+- Before showing Buy now, read the cart and confirm every line is available.
+
+- Link the button to buyLink. It opens Groupon's checkout page for that cart. If you have added CJ, the shopper passes through CJ first; this is what credits your commission. The page is on partner.groupon.com and shows your logo if you gave one (Logo and redirect URL).
+
+- Keep the cartId in the shopper's server-side session so you can tie the returning shopper to the cart they bought.
+
+## The return redirect
+
+If you gave no redirect URL, the shopper ends on Groupon's receipt page and gets Groupon's confirmation email, and your site does not receive a grouponOrderUuid (Logo and redirect URL).
+
+If you gave a redirect URL, Groupon redirects the shopper's browser there after a successful payment, with the order id added:
+
+https://your-site.example/checkout/complete?grouponOrderUuid=5d0c2f3a-8b1e-4c7d-a9f0-1e2d3c4b5a69
+
+Your handler for that URL must:
+
+- Read grouponOrderUuid and check it looks like a UUID. Ignore any other parameter. Handle each grouponOrderUuid once: a repeat visit shows the result you saved.
+
+- Call the Booking API from your server.
+
+- Match the order's items to the cart in the shopper's session. If there is no session or no match, show a neutral "check your Groupon email" page and do not mark any cart as purchased.
+
+- Keep the cartId and a snapshot of its lines until the order status is final. On success, mark the cart as purchased. On REJECTED or EXPIRED, read the cart; if it is gone, create a new one from the snapshot.
+
+- Render the confirmation page.
+
+A shopper who closes the tab before the redirect still has a valid order; they receive Groupon's confirmation email and can find the purchase in their Groupon account.
+
+## Reading the order
+
+curl -s "https://api.enc.groupon.com/octo-gateway/v1/partner-bookings/5d0c2f3a-8b1e-4c7d-a9f0-1e2d3c4b5a69" \
+ -H "g-api-key: $GROUPON_API_KEY" -H "User-Agent: MyStore/1.0 (+https://mystore.example)"
+
+The order's own facts sit at the top level. Everything about what was bought is under items: one entry per product and option, in the order they were bought. An order placed from a cart has one item per cart line, and every voucher (unit item) belongs to exactly one item. There is no top-level productId, optionId or unitItems.
+
+This example is an order from a two-line cart. The second line is still awaiting fulfilment, so the whole order reads ON_HOLD:
+
+{
+ "id": "5d0c2f3a-8b1e-4c7d-a9f0-1e2d3c4b5a69",
+ "uuid": "5d0c2f3a-8b1e-4c7d-a9f0-1e2d3c4b5a69",
+ "status": "ON_HOLD",
+ "supplierReference": "LG-ABCD-1234-EFGH",
+ "utcCreatedAt": "2026-09-18T12:10:44Z",
+ "items": [
+ {
+ "productId": "0b6f7a52-3c1d-4e8a-9f20-5d7c1a2b3c4d",
+ "optionId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+ "quantity": 2,
+ "status": "CONFIRMED",
+ "unitItems": [
+ { "uuid": "a1b2c3d4-0000-4000-8000-000000000001", "status": "CONFIRMED",
+ "myGrouponUrl": "https://www.groupon.com/mygroupons/users/<purchaserId>/details/a1b2c3d4-0000-4000-8000-000000000001?inventory_service=vis" },
+ { "uuid": "a1b2c3d4-0000-4000-8000-000000000002", "status": "CONFIRMED",
+ "myGrouponUrl": "https://www.groupon.com/mygroupons/users/<purchaserId>/details/a1b2c3d4-0000-4000-8000-000000000002?inventory_service=vis" }
+ ]
+ },
+ {
+ "productId": "1c7e8b63-4d2e-4f9b-a031-6e8d2b3c4d5e",
+ "optionId": "8d0f7780-8536-41ef-a55f-f18fd2a01bf8",
+ "quantity": 1,
+ "status": "ON_HOLD",
+ "unitItems": [
+ { "uuid": "a1b2c3d4-0000-4000-8000-000000000003", "status": "ON_HOLD",
+ "myGrouponUrl": "https://www.groupon.com/mygroupons/users/<purchaserId>/details/a1b2c3d4-0000-4000-8000-000000000003?inventory_service=vis" }
+ ]
+ }
+ ]
+}
+
+Every field is in the Partner bookings reference.
+
+### Matching an order to your cart
+
+items[].productId and items[].optionId are the same ids you sent as productId and optionId on the cart lines, and the same as the product id and option id from the Products API. Join each order item to your cart and your catalog on optionId without any translation. If productId is null, the product has since left Groupon's catalog; optionId still identifies what was bought.
+
+### Status meaning
+
+ | Status
+ | Meaning
+ | What to show
+
+ | ON_HOLD
+ | No payment has been taken yet, or it was taken but the vouchers' state could not be read yet. Normal for the first seconds after the redirect.
+ | "Finalizing your order…" and poll again.
+
+ | CONFIRMED
+ | Paid. Vouchers are issued.
+ | Success page.
+
+ | REDEEMED
+ | Every voucher has been used at the merchant.
+ | Success page, marked as used.
+
+ | REJECTED
+ | Payment failed. No order was completed.
+ | "Payment failed" and a link back to the cart.
+
+ | CANCELLED
+ | The order was cancelled or refunded.
+ | "This order was cancelled."
+
+ | EXPIRED
+ | The order was not paid for in time.
+ | "This order was not completed" and a link back to the cart.
+
+ | PENDING
+ | Payment is being processed, or it has been taken and the vouchers are still being issued.
+ | "Finalizing your order…" and poll again.
+
+The same statuses apply at three levels: the order (status), each item (items[].status) and each voucher (items[].unitItems[].status). The order's status is never more advanced than its least-advanced item: one item still ON_HOLD keeps the whole order ON_HOLD, and the order reads REDEEMED only when every item does. Use the order status to pick the page to render, items[].status to show per-product state, and unitItems[].status for per-voucher state.
+
+Cancelled items are set aside. An item is CANCELLED once all its vouchers are, and the order once all its items are. An order with some items cancelled takes the status of the rest, and each cancelled voucher reads CANCELLED in unitItems.
+
+Treat any status you do not recognise as unresolved: show it as not completed, keep the cart, and never start a new purchase because of it. This keeps your code working if a new status is added.
+
+### Polling
+
+Right after the redirect the status is often ON_HOLD or PENDING. Poll from your server: wait 2 s, then 4 s, 8 s, 15 s, 30 s (about one minute in total). Stop as soon as the status is neither ON_HOLD nor PENDING. If it is still ON_HOLD or PENDING after the last try, show "Your order is being processed — you will receive a confirmation email from Groupon" together with the voucher buttons below.
+
+### The voucher buttons
+
+Each item's unitItems has one entry per purchased unit of that item: an item with quantity 2 has two entries. Render the order grouped by item. For each item, show the product and option (joined to your catalog on optionId), then for each of its unitItems render a button such as "View voucher 1 on Groupon" whose href is that entry's myGrouponUrl.
+
+- The shopper must log in to their Groupon account to open it. That page is where they view and redeem the voucher.
+
+- An item can still be ON_HOLD or PENDING while others are CONFIRMED. Show the buttons you have and a "still processing" note on that item.
+
+- A voucher whose status is CANCELLED was cancelled or refunded. Show it as cancelled, without a voucher button.
+
+Treat grouponOrderUuid as sensitive. Do not log it in analytics or expose it on public pages.
+
+### Errors
+
+Booking API errors use the flat Shape A body (see Handling errors).
+
+ | error
+ | Meaning
+ | What to do
+
+ | INVALID_BOOKING_UUID
+ | No order with that uuid, or the order was not placed from one of your carts (for example, a cart created under an earlier registration).
+ | Do not retry. Show a neutral message.
+
+ | FORBIDDEN
+ | Your API key is not registered or has been deactivated.
+ | Do not retry. Contact req.partner.api@groupon.com <mailto:req.partner.api@groupon.com>.
+
+ | INTERNAL_SERVER_ERROR
+ | Groupon could not read the order right now, for example because it could not resolve the order's products or received the order without any items. The order itself is not affected.
+ | Retry with the same backoff as polling (2 s, 4 s, 8 s, 15 s, 30 s). If it still fails, show "Your order is being processed — you will receive a confirmation email from Groupon", and quote the requestId if you contact support.
+
+A booking read never changes the order, so it is always safe to retry.
+
+# Handling errors
+
+## One helper for every endpoint
+
+Error bodies come in three shapes: Shape A (flat), Shape B (Cart APIs) and Shape C (requests rejected before they reach the API, such as a bad API key). Read the code with one expression, which handles all three:
+
+function grouponErrorCode(body: any): string {
+ return body?.error ?? body?.details?.error ?? body?.code ?? "UNKNOWN";
+}
+function grouponRequestId(body: any): string | undefined {
+ return body?.requestId ?? body?.details?.requestId;
+}
+
+## Shape A: Products, Supplier and Booking APIs, partners/me and register
+
+Any application error returns HTTP 400 with a flat body, including INTERNAL_SERVER_ERROR. The HTTP status carries no meaning; branch on error. This applies to the Products, Supplier and Booking APIs, to GET /octo-gateway/v1/partners/me, and to POST /octo-gateway/v1/register, whose RATE_LIMITED arrives as HTTP 429. A successful register call returns HTTP 200.
+
+{ "error": "FORBIDDEN", "errorMessage": "Requested country is not available for this partner", "requestId": "c0ffee00-..." }
+
+## Shape B: Cart APIs
+
+The HTTP status varies, and the code is under details.
+
+{
+ "code": "aborted",
+ "message": "Displayed price no longer valid",
+ "details": {
+ "error": "PRICE_MISMATCH", "errorMessage": "Displayed price no longer valid", "requestId": "c0ffee00-...",
+ "path": "$.items[0]", "expectedPrice": 4500, "currentPrice": 4900, "currency": "USD", "currencyPrecision": 2
+ }
+}
+
+Abandoning a cart uses the varying HTTP status with the flat Shape A body.
+
+The fields of Shapes A and B are in each endpoint's error response in the API reference.
+
+## Error codes
+
+ | error
+ | HTTP on Cart APIs
+ | Meaning
+ | What to do
+
+ | BAD_REQUEST
+ | 400
+ | A field is missing or invalid, or a cursor is bad. errorMessage names the field.
+ | Fix the request. For cursor errors restart the walk.
+
+ | FORBIDDEN
+ | 403
+ | Not registered, deactivated, or the country, state or category is outside your scope. The message is intentionally generic.
+ | Check country=US and your filters; otherwise contact req.partner.api@groupon.com <mailto:req.partner.api@groupon.com>. Do not retry.
+
+ | INVALID_PRODUCT_ID
+ | 404
+ | The product does not exist, or the cart has no such line.
+ | For a product: mark it not listable. For a cart line: read the cart; if it comes back empty, create a new cart (see Using the cart response).
+
+ | PRODUCT_NOT_CARTABLE
+ | 400
+ | The deal needs a time-slot booking. productId in details names it.
+ | Remove it from your listing.
+
+ | PRICE_MISMATCH
+ | 409
+ | expectedPrice differs from the live price. currentPrice in details is the live per-unit price; path points at the item. Nothing was changed.
+ | Update your price, ask the shopper to confirm, retry.
+
+ | CART_ITEM_LIMIT
+ | 400
+ | More than 20 different options. details carries limit and actual.
+ | Tell the shopper the cart is full.
+
+ | SELF_REGISTRATION_CLOSED
+ | (register: 400, flat)
+ | POST /octo-gateway/v1/register is closed.
+ | Email req.partner.api@groupon.com <mailto:req.partner.api@groupon.com> for an API key.
+
+ | RATE_LIMITED
+ | (register: 429, flat)
+ | Too many register calls from your IP address, or in total, right now.
+ | Wait for the number of seconds in Retry-After, then try again.
+
+ | INVALID_CART_ID
+ | 404
+ | No cart with that id for your partner account: it never existed, or another partner created it.
+ | Do not retry. Create a new cart from your local copy (see Using the cart response).
+
+ | INVALID_BOOKING_UUID
+ | (400, flat)
+ | No order with that uuid, or the order was not placed from one of your carts.
+ | Do not retry. Show a neutral message.
+
+ | UNPROCESSABLE_ENTITY, INVALID_BOOKING_STATE
+ | 400 / 409
+ | Reserved.
+ | Treat as a non-retryable failure.
+
+ | INTERNAL_SERVER_ERROR
+ | 500 (400 on the Products, Supplier and Booking APIs, and on register and partners/me)
+ | A Groupon-side failure. On the Booking API this includes an order Groupon could not read in full (see Checkout and order confirmation).
+ | Retry with backoff, except adding cart items (read the cart first).
+
+## Shape C: authentication and unreadable requests
+
+These bodies have no error field and no requestId; grouponErrorCode returns the lower-case code.
+
+- HTTP 401, code: "unauthenticated": a missing, wrong or rotated key, on every endpoint that takes a key. Do not retry; alert an operator.
+
+- HTTP 400, code: "invalid_argument": a request the API cannot read, such as a body that is not valid JSON or is missing a required field. On POST /octo-gateway/v1/register this is a missing displayName, partnerContactName or partnerContactEmail; message names them. Do not retry; fix the request.
+
+{ "code": "unauthenticated", "message": "the request does not have valid authentication credentials for the operation", "details": null }
+
+## Retry policy
+
+Decide whether to retry from the error code first, and from the HTTP status only when the response has no Groupon error code. On the Products, Supplier and Booking APIs every application error, including INTERNAL_SERVER_ERROR, arrives as HTTP 400, so the status alone does not tell you whether a retry can succeed.
+
+ | Situation
+ | Retry?
+
+ | INTERNAL_SERVER_ERROR on any endpoint (HTTP 400 on the Products, Supplier and Booking APIs, register and partners/me, 500 on the Cart APIs)
+ | Yes. Exponential backoff, max 5 tries. Exceptions: adding cart items and registering (below).
+
+ | Network error, timeout, 429, or a 5xx with no Groupon error code in the body
+ | Yes. Exponential backoff, max 5 tries. On 429, wait at least the seconds in Retry-After first. Exceptions: adding cart items and registering (below).
+
+ | Any retryable failure on adding items to a cart
+ | No. Read the cart, compare, then add only what is missing.
+
+ | Any retryable failure on creating a cart
+ | Yes. A retry creates a separate new cart, which is harmless. Use the id from the call that succeeded.
+
+ | BAD_REQUEST with a cursor message on the Products API
+ | Not the same page. Discard the cursor and restart the walk from page 1 (see Rules for every walk).
+
+ | BAD_REQUEST, FORBIDDEN, INVALID_PRODUCT_ID, PRODUCT_NOT_CARTABLE, PRICE_MISMATCH, CART_ITEM_LIMIT, INVALID_BOOKING_UUID, UNPROCESSABLE_ENTITY, INVALID_BOOKING_STATE, SELF_REGISTRATION_CLOSED, INVALID_CART_ID, invalid_argument (Shape C)
+ | No. Handle the code as described in Error codes.
+
+ | Any failure on POST /octo-gateway/v1/register
+ | No automatic retry. RATE_LIMITED: wait for Retry-After. BAD_REQUEST: fix every named field first. Timeout or network error: email req.partner.api@groupon.com <mailto:req.partner.api@groupon.com> before registering again, because the call may have created your partner.
+
+ | HTTP 401 (authentication failure)
+ | No. Alert an operator.
+
+# Suggested data model
+
+A starting point for the tables your integration needs. Adapt the types to your database.
+
+products(
+ id uuid primary key, title text, description text, short_description text,
+ status text, availability_required boolean, primary_image_url text,
+ locations jsonb, category_labels jsonb, raw jsonb,
+ listable boolean, updated_at timestamptz)
+
+product_options(
+ id uuid primary key, product_id uuid references products(id),
+ title text, active boolean, is_default boolean,
+ retail_minor int, original_minor int, currency text, currency_precision int,
+ promo_amount_minor int, promo_code text, promo_end timestamptz,
+ min_units int, max_units int)
+
+sync_state(name text primary key, last_refresh_at timestamptz)
+
+carts(
+ session_id text primary key, groupon_cart_id uuid, buy_link text,
+ snapshot jsonb, purchased_order_uuid uuid, updated_at timestamptz)
+
+A product is listable when its status is active, it does not require availability, and at least one of its options is not inactive (active IS DISTINCT FROM false). See Syncing the catalog.
+
+# Build checklist
+
+- API key stored as a server-side secret; never sent to the browser.
+
+- The key from register went straight to the secret store, and GET /octo-gateway/v1/partners/me returns your registration.
+
+- Full product load works and pages until hasMore is false.
+
+- Delta refresh every few hours using updatedSince and a persisted last-refresh time; tolerates a full-catalog delta.
+
+- Listing hides products that are not active, that have availabilityRequired: true, and options with active: false.
+
+- First add creates a cart; later edits use add, PATCH and DELETE; local cart is overwritten from each response.
+
+- expectedPrice is sent; PRICE_MISMATCH updates the price and re-prompts the shopper.
+
+- item_declined, price_unavailable and available: false are surfaced to the shopper.
+
+- Buy now uses the latest buyLink verbatim, with or without CJ, and is hidden when the cart has unavailable lines.
+
+- Redirect handler validates grouponOrderUuid, calls the Booking API server-side, and polls while ON_HOLD or PENDING.
+
+- Confirmation page reads items[] (not a single product), shows each item joined on optionId, and one "View on Groupon" button per entry of that item's unitItems.
+
+- cartId is discarded after abandon and after purchase.
+
+- Every request sends x-request-id; error logs keep requestId.
+
+- Tested end to end in production with your API key: one small real order through your storefront, checking the redirect, the Booking API and the voucher buttons. Email req.partner.api@groupon.com <mailto:req.partner.api@groupon.com> to have the test order refunded afterwards.
+
+# API reference
+
+Every endpoint of the Groupon Partner Storefront API. The reference pages are generated from the API's OpenAPI document, so they always match what the API accepts and returns. Each operation links the full OpenAPI document, which you can load into a client generator or give to your AI coding assistant.
+
+The document is at https://api.enc.groupon.com/octo-gateway/v1/openapi.json <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>.
+
+ | Group
+ | Endpoints
+
+ | Products
+ | List deals inside your inventory scope.
+
+ | Carts
+ | Create, read and abandon a cart.
+
+ | Cart items
+ | Add, change and remove cart lines.
+
+ | Partner bookings
+ | Read an order after checkout.
+
+ | Supplier
+ | Read your supplier record.
+
+- Base URL: https://api.enc.groupon.com, every path under /octo-gateway/v1/.
+
+- Authentication: the g-api-key header on every request, except POST /octo-gateway/v1/register. See Conventions.
+
+- Errors: see Handling errors.
+
+# Products
+
+How to walk, refresh and list the catalog is in Syncing the catalog.
+
+## List products
+
+GET/octo-gateway/v1/products
+https://api.enc.groupon.com/octo-gateway/v1/products OpenAPI document <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>
+
+List Groupon deals available to you, as OCTO Products.
+
+Walk the full catalogue once, then poll for changes with updatedSince.
+Paginate by sending the returned nextCursor back as cursor, keeping every
+other query parameter identical across one walk. timestamp is present only
+on the last page (hasMore: false). For the next walk's updatedSince, see Keeping your catalog fresh.
+
+Deals that require a booking are not returned by this endpoint.
+
+Currently only US inventory is exposed, so country=US is required.
+
+header g-api-key
+
+Partner API key, returned as token by POST /octo-gateway/v1/register or issued by Groupon. Format: grpn_ + 8 hex + _ + 56 hex. Send it on every request except POST /octo-gateway/v1/register. This is not a bearer token: Authorization: Bearer ... returns 401.
+
+#### Parameters
+
+- 
+countrystringqueryrequired
+
+ISO-3166 alpha-2 country code. Use US -- currently only US inventory is exposed.
+
+A Groupon extension; required.
+
+- 
+limitnumberquery
+
+Products per page. Defaults to 100; 10 is recommended. A large page (500 and up) can exceed the request time budget and fail, so walk the catalogue with limit=10. Your account may have a lower cap, and a larger value is silently reduced to it rather than rejected.
+
+A Groupon extension.
+
+- 
+cursorstringquery
+
+The nextCursor from the previous page. Omit on the first page.
+
+Treat the value as opaque and send it back exactly as received, keeping
+every other query parameter identical across one walk.
+
+A Groupon extension.
+
+- 
+statestringquery
+
+US state matched against the deal's divisions (Groupon extension).
+
+Send the FULL STATE NAME exactly as stored, e.g. Pennsylvania,
+California, New York — NOT an abbreviation such as PA, and not
+PENNSYLVANIA. The match is case-SENSITIVE: only surrounding whitespace is
+trimmed, and the value is otherwise passed through verbatim, so a
+differently-cased or abbreviated value returns an EMPTY page rather than an
+error. Omit to apply no state filter.
+
+Allowed values: Inventory scope values.
+
+- 
+category0stringquery
+
+Category permalink at depth 0, e.g. local. Allowed values: Inventory scope values. A Groupon extension.
+
+- 
+category1stringquery
+
+Category permalink at depth 1, e.g. things-to-do. Allowed values: Inventory scope values. A Groupon extension.
+
+- 
+category2stringquery
+
+Category permalink at depth 2. Allowed values: Inventory scope values. A Groupon extension.
+
+- 
+activebooleanquery
+
+Whether to filter on the deal's active flag (Groupon extension). When OMITTED no filter is applied at all and the page carries both active and inactive deals — read each product's status to tell them apart.
+
+Distinct from status (the deal's lifecycle state on the response) and from
+an option's available flag (bookable availability).
+
+- 
+updatedSincestringquery
+
+ISO-8601 freshness watermark (Groupon extension). Returns only deals whose price or content changed at or after this instant. Omit to return all deals.
+
+#### Responses
+200 
+Successful response
+
+- 
+productsobject[]Show properties
+- 
+idstringrequired
+
+- 
+internalNamestringrequired
+
+- 
+referencestring | nullrequired
+
+- 
+localestringrequired
+
+- 
+timeZonestringrequired
+
+- 
+allowFreesalebooleanrequired
+
+- 
+instantConfirmationbooleanrequired
+
+- 
+instantDeliverybooleanrequired
+
+- 
+availabilityRequiredbooleanrequired
+
+- 
+availabilityType"START_TIME" | "OPENING_HOURS"required
+
+- 
+deliveryFormats"PDF_URL" | "QRCODE"[]required
+
+- 
+deliveryMethods"TICKET" | "VOUCHER"[]required
+
+- 
+redemptionMethod"DIGITAL" | "PRINT" | "MANIFEST"required
+
+- 
+optionsobject[]requiredShow properties
+- 
+idstringrequired
+
+- 
+defaultbooleanrequired
+
+- 
+internalNamestringrequired
+
+- 
+referencestring | nullrequired
+
+- 
+activeboolean | nullrequired
+
+Whether this option is currently live.
+
+An active deal can still carry inactive options, so check this before
+offering one. null means Groupon does not know -- treat it as unknown, not
+as inactive. To list only live options, filter on active !== false.
+
+A Groupon extension -- not part of the standard OCTO contract.
+
+- 
+availabilityLocalStartTimesstring[]required
+
+Always empty today, for EVERY product regardless of availabilityType — start times arrive with the availability endpoints, which are out of scope. A START_TIME product does not carry them here either.
+
+- 
+cancellationCutoffstringrequired
+
+- 
+cancellationCutoffAmountnumberrequired
+
+- 
+cancellationCutoffUnit"hour" | "minute" | "day"required
+
+- 
+requiredContactFields"firstName" | "lastName" | "emailAddress" | "phoneNumber" | "country" | "notes"[]required
+
+- 
+restrictionsobjectrequiredShow properties
+- 
+minUnitsnumberrequired
+
+- 
+maxUnitsnumber | nullrequired
+
+- 
+unitsobject[]requiredShow properties
+- 
+idstringrequired
+
+- 
+internalNamestringrequired
+
+- 
+referencestring | nullrequired
+
+- 
+type"ADULT" | "YOUTH" | "CHILD" | "INFANT" | "FAMILY" | "SENIOR" | "STUDENT" | "MILITARY" | "OTHER"required
+
+- 
+restrictionsobjectrequiredShow properties
+- 
+minQuantitynumber | nullrequired
+
+- 
+maxQuantitynumber | nullrequired
+
+- 
+pricingobject[]required
+
+Pricing capability. One row per unit (pricingPer = UNIT).
+
+Show properties
+- 
+originalnumberrequired
+
+- 
+retailnumberrequired
+
+- 
+discountedPriceobject | null
+
+The promotional price a shopper pays with an active Groupon promo code, plus the code and its expiry.
+
+null when no promotion applies. Absent entirely on endpoints where a
+promotional price has no meaning -- only GET /octo-gateway/v1/products populates it.
+
+A Groupon extension -- not part of the standard OCTO contract.
+
+Show properties
+- 
+amountnumberrequired
+
+The promotional price, in the same minor units and currency as the sibling retail.
+
+- 
+promoCodestring | nullrequired
+
+The code a shopper enters to get amount, e.g. "PRIMAVERA". null when the promotion has no code.
+
+- 
+endDatestring | nullrequired
+
+When the promotion stops working -- ISO-8601 with an explicit UTC offset, e.g. "2026-04-02T23:59:00+02:00". null when no end date is known.
+
+- 
+netnumber | nullrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+includedTaxesobject[]requiredShow properties
+- 
+namestringrequired
+
+- 
+retailnumberrequired
+
+- 
+originalnumberrequired
+
+- 
+netnumber | nullrequired
+
+Groupon exposes no partner-net tax at this layer, so net is null (spec allows it).
+
+- 
+selectionsobject[]required
+
+Groupon extension. Always present — an empty array when the option carries no choose-one attribute, which is the majority case.
+
+Show properties
+- 
+attributeIdstringrequired
+
+- 
+titlestringrequired
+
+- 
+requiredbooleanrequired
+
+Always true — a choose-one attribute has no "skip" value.
+
+- 
+valuesobject[]requiredShow properties
+- 
+idstringrequired
+
+- 
+titlestringrequired
+
+- 
+status"active" | "sold_out" | "expired"required
+
+A deal's lifecycle state.
+
+active is on sale, sold_out has no inventory left, and expired has
+ended. A Groupon extension, not part of the standard OCTO contract.
+
+- 
+titlestringrequired
+
+Content capability (octo/content)
+
+- 
+descriptionstringrequired
+
+- 
+shortDescriptionstringrequired
+
+- 
+mediaobject[]requiredShow properties
+- 
+urlstringrequired
+
+- 
+rolestringrequired
+
+- 
+widthnumber | nullrequired
+
+- 
+heightnumber | nullrequired
+
+- 
+locationsobject[]requiredShow properties
+- 
+idstring | nullrequired
+
+- 
+namestring | nullrequired
+
+- 
+latitudenumber | nullrequired
+
+- 
+longitudenumber | nullrequired
+
+- 
+citystring | nullrequired
+
+- 
+statestring | nullrequired
+
+- 
+countrystring | nullrequired
+
+- 
+postalCodestring | nullrequired
+
+- 
+streetstring | nullrequired
+
+- 
+categoryLabelsstring[]required
+
+- 
+nextCursorstring | null
+
+The cursor for the next page. Opaque: send it back exactly as received. null on the final page.
+
+- 
+hasMoreboolean
+
+true while more pages remain. Keep paging until it is false, even when a page holds fewer products than limit or none.
+
+- 
+timestampstring
+
+Present only on the final page of a walk (hasMore: false); the field is absent, not null, on every other page. Groupon's server time minus 60 seconds, as ISO-8601 UTC with milliseconds, e.g. 2026-09-18T12:04:31.000Z. A walk whose filters match nothing returns one final page with an empty products array, hasMore: false and a timestamp.
+
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestring
+
+- 
+requestIdstring
+401 
+Missing or invalid API key.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+Always null on an authentication failure.
+
+default 
+Error. The body is the error object itself, always with HTTP 400. Branch on error, not on the status.
+
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"required
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestringrequired
+
+Human-readable explanation, for your logs. Do not branch on it.
+
+- 
+requestIdstringrequired
+
+Quote it when contacting Groupon about the failure.
+
+- 
+pathstring
+
+PRICE_MISMATCH only: JSONPath into your request naming the item concerned, e.g. $.items[0] or $.expectedPrice.
+
+- 
+expectedPricenumber
+
+PRICE_MISMATCH only: the price you sent, in minor units.
+
+- 
+currentPricenumber
+
+PRICE_MISMATCH only: the current price, in minor units. Re-render with it and retry in one round-trip.
+
+- 
+currencystring
+
+PRICE_MISMATCH only: ISO-4217 currency of both prices.
+
+- 
+currencyPrecisionnumber
+
+PRICE_MISMATCH only: decimal places to divide by for display.
+
+# Carts
+
+How to keep your cart in step with Groupon is in Managing the cart.
+
+## Create a cart
+
+POST/octo-gateway/v1/carts
+https://api.enc.groupon.com/octo-gateway/v1/carts OpenAPI document <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>
+
+Create a cart, together with its first item or items.
+
+A cart cannot be created empty -- items is required and must hold at least one
+entry; an empty array is rejected with BAD_REQUEST. All items are validated before anything is added: if any one fails,
+nothing is added and no cart is created.
+
+Returns the full cart, including the buyLink you must use verbatim as your
+checkout URL. Store the returned cart id against the shopper's session on
+your server. Only your API key can read or change a cart it created; any other cart id returns INVALID_CART_ID.
+
+Send expectedPrice per item: the per-unit price your site is showing. If
+Groupon's live price differs the call fails with PRICE_MISMATCH and reports
+the current price, so you can update your side and ask the shopper to confirm
+before retrying. Without it, the shopper may see one price on your site and
+another at checkout.
+
+Limits: at most 20 different options per cart, and quantity 1 to 100 per line.
+
+header g-api-key
+
+Partner API key, returned as token by POST /octo-gateway/v1/register or issued by Groupon. Format: grpn_ + 8 hex + _ + 56 hex. Send it on every request except POST /octo-gateway/v1/register. This is not a bearer token: Authorization: Bearer ... returns 401.
+
+#### Request body
+
+- 
+countrystringrequired
+
+ISO-3166 alpha-2 country code. Use US -- currently only US inventory is exposed.
+
+- 
+currencystring
+
+- 
+clientReferencestring
+
+- 
+itemsobject[]requiredShow properties
+- 
+productIdstringrequired
+
+- 
+optionIdstringrequired
+
+- 
+quantitynumberrequired
+
+- 
+expectedPricenumber
+
+The per-unit price your site is showing, in minor units. When it disagrees with Groupon's live price the call fails with PRICE_MISMATCH and reports the current price, so the shopper never sees one price on your site and another at checkout. Optional, but strongly recommended.
+
+#### Responses
+200 
+Successful response
+
+- 
+idstringrequired
+
+- 
+status"ACTIVE" | "LOCKED" | "CHECKED_OUT" | "EXPIRED" | "ABANDONED"required
+
+The cart's lifecycle state.
+
+- 
+testModebooleanrequired
+
+- 
+partnerobjectrequired
+
+The partner the cart belongs to -- you.
+
+Show properties
+- 
+partnerIdstringrequired
+
+Your partner id: the stable identifier stamped on orders placed from this cart. It does not change when your API key is rotated.
+
+- 
+namestring | nullrequired
+
+Your display name, as shown to shoppers on Groupon's checkout page.
+
+- 
+buyLinkstringrequired
+
+The checkout URL for this cart. Send the shopper here to pay. Always present. Use it verbatim and take it from the most recent cart response: it is rebuilt on every call.
+
+With CJ (a CJ publisher id is registered for your API key): an affiliate link that credits your CJ account with the sale. Without CJ: the direct Groupon checkout page for the cart; no affiliate attribution applies.
+
+- 
+countrystringrequired
+
+ISO-3166 alpha-2 country code. Use US -- currently only US inventory is exposed.
+
+- 
+currencystringrequired
+
+- 
+clientReferencestring | nullrequired
+
+- 
+itemCountnumberrequired
+
+- 
+itemsobject[]requiredShow properties
+- 
+idstringrequired
+
+- 
+productIdstringrequired
+
+- 
+optionIdstringrequired
+
+- 
+titlestring | nullrequired
+
+- 
+optionTitlestring | nullrequired
+
+- 
+mediaobject[]required
+
+- 
+urlstringrequired
+
+- 
+rolestringrequired
+
+- 
+widthnumber | nullrequired
+
+- 
+heightnumber | nullrequired
+
+- 
+quantitynumberrequired
+
+- 
+availablebooleanrequired
+
+- 
+unavailableReason"SOLD_OUT" | "DEAL_ENDED" | "OPTION_REMOVED"required
+
+Why a cart line cannot be bought, or null when it is available.
+
+- 
+pricingobject | nullrequired
+
+What one cart line costs.
+
+null on a line whose price could not be read; messages[] says why.
+
+Show properties
+- 
+originalnumberrequired
+
+- 
+retailnumberrequired
+
+- 
+netnumber | nullrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+includedTaxesobject[]required
+
+Tax already included in retail, itemised.
+
+Empty when Groupon publishes no per-line tax breakdown for this deal.
+
+Show properties
+- 
+namestringrequired
+
+- 
+retailnumberrequired
+
+- 
+originalnumberrequired
+
+- 
+netnumber | nullrequired
+
+Groupon exposes no partner-net tax at this layer, so net is null (spec allows it).
+
+- 
+lineTotalnumber | nullrequired
+
+pricing.retail * quantity, or null when pricing is null (degraded line -- excluded from totals, not treated as $0).
+
+- 
+totalsobjectrequired
+
+Cart totals, in minor units.
+
+A line whose price could not be read contributes nothing here; messages[]
+says which, so a total is never silently short.
+
+Show properties
+- 
+subtotalnumberrequired
+
+- 
+savingsnumberrequired
+
+- 
+grandTotalnumberrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+messagesobject[]requiredShow properties
+- 
+type"warning" | "info"required
+
+- 
+codestringrequired
+
+- 
+contentstringrequired
+
+- 
+pathstringrequired
+
+JSONPath into the cart response, e.g. $.items[0].
+
+- 
+utcCreatedAtstring | nullrequired
+
+- 
+utcUpdatedAtstring | nullrequired
+
+- 
+utcExpiresAtstring | nullrequired
+401 
+Missing or invalid API key.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+Always null on an authentication failure.
+
+default 
+Error. The HTTP status reflects code; the endpoint's own error is in details.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+The error every failed request reports. Branch on error, never on errorMessage. The five price fields are present only when error is PRICE_MISMATCH.
+
+Show properties
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"required
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestringrequired
+
+Human-readable explanation, for your logs. Do not branch on it.
+
+- 
+requestIdstringrequired
+
+Quote it when contacting Groupon about the failure.
+
+- 
+pathstring
+
+PRICE_MISMATCH only: JSONPath into your request naming the item concerned, e.g. $.items[0] or $.expectedPrice.
+
+- 
+expectedPricenumber
+
+PRICE_MISMATCH only: the price you sent, in minor units.
+
+- 
+currentPricenumber
+
+PRICE_MISMATCH only: the current price, in minor units. Re-render with it and retry in one round-trip.
+
+- 
+currencystring
+
+PRICE_MISMATCH only: ISO-4217 currency of both prices.
+
+- 
+currencyPrecisionnumber
+
+PRICE_MISMATCH only: decimal places to divide by for display.
+
+## Read a cart
+
+GET/octo-gateway/v1/carts/{cartId}
+https://api.enc.groupon.com/octo-gateway/v1/carts/{cartId} OpenAPI document <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>
+
+Read a cart: its items, totals and current buyLink.
+
+Always read the buyLink from the most recent cart response rather than
+storing one -- it is refreshed on every call.
+
+header g-api-key
+
+Partner API key, returned as token by POST /octo-gateway/v1/register or issued by Groupon. Format: grpn_ + 8 hex + _ + 56 hex. Send it on every request except POST /octo-gateway/v1/register. This is not a bearer token: Authorization: Bearer ... returns 401.
+
+#### Parameters
+
+- 
+cartIdstringpathrequired
+
+- 
+countrystringquery
+
+ISO-3166 alpha-2 country code. Use US -- currently only US inventory is exposed.
+
+#### Responses
+200 
+Successful response
+
+- 
+idstringrequired
+
+- 
+status"ACTIVE" | "LOCKED" | "CHECKED_OUT" | "EXPIRED" | "ABANDONED"required
+
+The cart's lifecycle state.
+
+- 
+testModebooleanrequired
+
+- 
+partnerobjectrequired
+
+The partner the cart belongs to -- you.
+
+Show properties
+- 
+partnerIdstringrequired
+
+Your partner id: the stable identifier stamped on orders placed from this cart. It does not change when your API key is rotated.
+
+- 
+namestring | nullrequired
+
+Your display name, as shown to shoppers on Groupon's checkout page.
+
+- 
+buyLinkstringrequired
+
+The checkout URL for this cart. Send the shopper here to pay. Always present. Use it verbatim and take it from the most recent cart response: it is rebuilt on every call.
+
+With CJ (a CJ publisher id is registered for your API key): an affiliate link that credits your CJ account with the sale. Without CJ: the direct Groupon checkout page for the cart; no affiliate attribution applies.
+
+- 
+countrystringrequired
+
+ISO-3166 alpha-2 country code. Use US -- currently only US inventory is exposed.
+
+- 
+currencystringrequired
+
+- 
+clientReferencestring | nullrequired
+
+- 
+itemCountnumberrequired
+
+- 
+itemsobject[]requiredShow properties
+- 
+idstringrequired
+
+- 
+productIdstringrequired
+
+- 
+optionIdstringrequired
+
+- 
+titlestring | nullrequired
+
+- 
+optionTitlestring | nullrequired
+
+- 
+mediaobject[]required
+
+- 
+urlstringrequired
+
+- 
+rolestringrequired
+
+- 
+widthnumber | nullrequired
+
+- 
+heightnumber | nullrequired
+
+- 
+quantitynumberrequired
+
+- 
+availablebooleanrequired
+
+- 
+unavailableReason"SOLD_OUT" | "DEAL_ENDED" | "OPTION_REMOVED"required
+
+Why a cart line cannot be bought, or null when it is available.
+
+- 
+pricingobject | nullrequired
+
+What one cart line costs.
+
+null on a line whose price could not be read; messages[] says why.
+
+Show properties
+- 
+originalnumberrequired
+
+- 
+retailnumberrequired
+
+- 
+netnumber | nullrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+includedTaxesobject[]required
+
+Tax already included in retail, itemised.
+
+Empty when Groupon publishes no per-line tax breakdown for this deal.
+
+Show properties
+- 
+namestringrequired
+
+- 
+retailnumberrequired
+
+- 
+originalnumberrequired
+
+- 
+netnumber | nullrequired
+
+Groupon exposes no partner-net tax at this layer, so net is null (spec allows it).
+
+- 
+lineTotalnumber | nullrequired
+
+pricing.retail * quantity, or null when pricing is null (degraded line -- excluded from totals, not treated as $0).
+
+- 
+totalsobjectrequired
+
+Cart totals, in minor units.
+
+A line whose price could not be read contributes nothing here; messages[]
+says which, so a total is never silently short.
+
+Show properties
+- 
+subtotalnumberrequired
+
+- 
+savingsnumberrequired
+
+- 
+grandTotalnumberrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+messagesobject[]requiredShow properties
+- 
+type"warning" | "info"required
+
+- 
+codestringrequired
+
+- 
+contentstringrequired
+
+- 
+pathstringrequired
+
+JSONPath into the cart response, e.g. $.items[0].
+
+- 
+utcCreatedAtstring | nullrequired
+
+- 
+utcUpdatedAtstring | nullrequired
+
+- 
+utcExpiresAtstring | nullrequired
+401 
+Missing or invalid API key.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+Always null on an authentication failure.
+
+default 
+Error. The HTTP status reflects code; the endpoint's own error is in details.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+The error every failed request reports. Branch on error, never on errorMessage. The five price fields are present only when error is PRICE_MISMATCH.
+
+Show properties
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"required
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestringrequired
+
+Human-readable explanation, for your logs. Do not branch on it.
+
+- 
+requestIdstringrequired
+
+Quote it when contacting Groupon about the failure.
+
+- 
+pathstring
+
+PRICE_MISMATCH only: JSONPath into your request naming the item concerned, e.g. $.items[0] or $.expectedPrice.
+
+- 
+expectedPricenumber
+
+PRICE_MISMATCH only: the price you sent, in minor units.
+
+- 
+currentPricenumber
+
+PRICE_MISMATCH only: the current price, in minor units. Re-render with it and retry in one round-trip.
+
+- 
+currencystring
+
+PRICE_MISMATCH only: ISO-4217 currency of both prices.
+
+- 
+currencyPrecisionnumber
+
+PRICE_MISMATCH only: decimal places to divide by for display.
+
+## Abandon a cart
+
+DELETE/octo-gateway/v1/carts/{cartId}
+https://api.enc.groupon.com/octo-gateway/v1/carts/{cartId} OpenAPI document <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>
+
+Abandon a cart. Returns no body on success.
+
+Call this when the shopper empties their basket or leaves, and discard the
+cartId afterwards. Also discard it once an order has been placed from it.
+
+After abandoning, reading the cart returns an empty cart (itemCount: 0), and
+changing or removing a line returns INVALID_PRODUCT_ID. Use a new cart for anything
+the shopper adds next.
+
+header g-api-key
+
+Partner API key, returned as token by POST /octo-gateway/v1/register or issued by Groupon. Format: grpn_ + 8 hex + _ + 56 hex. Send it on every request except POST /octo-gateway/v1/register. This is not a bearer token: Authorization: Bearer ... returns 401.
+
+#### Parameters
+
+- 
+cartIdstringpathrequired
+
+#### Responses
+204 
+No content. The response has no body.
+
+401 
+Missing or invalid API key.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+Always null on an authentication failure.
+
+default 
+Error. The HTTP status reflects code; the endpoint's own error is in details.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+The error every failed request reports. Branch on error, never on errorMessage. The five price fields are present only when error is PRICE_MISMATCH.
+
+Show properties
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"required
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestringrequired
+
+Human-readable explanation, for your logs. Do not branch on it.
+
+- 
+requestIdstringrequired
+
+Quote it when contacting Groupon about the failure.
+
+- 
+pathstring
+
+PRICE_MISMATCH only: JSONPath into your request naming the item concerned, e.g. $.items[0] or $.expectedPrice.
+
+- 
+expectedPricenumber
+
+PRICE_MISMATCH only: the price you sent, in minor units.
+
+- 
+currentPricenumber
+
+PRICE_MISMATCH only: the current price, in minor units. Re-render with it and retry in one round-trip.
+
+- 
+currencystring
+
+PRICE_MISMATCH only: ISO-4217 currency of both prices.
+
+- 
+currencyPrecisionnumber
+
+PRICE_MISMATCH only: decimal places to divide by for display.
+
+# Cart items
+
+itemId is the id of a cart line, which equals the optionId it was created from. See Managing the cart.
+
+## Add items to a cart
+
+POST/octo-gateway/v1/carts/{cartId}/items
+https://api.enc.groupon.com/octo-gateway/v1/carts/{cartId}/items OpenAPI document <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>
+
+Add one or more items to an existing cart.
+
+This ADDS quantity rather than replacing it, so a retry after a timeout can
+double a line. On a timeout, read the cart back and reconcile instead of
+blind-retrying. Adding an option the cart already holds increases that line's
+quantity rather than creating a second line.
+
+Returns the full updated cart, including a fresh buyLink.
+
+Limits: at most 20 different options per cart, and quantity 1 to 100 per line.
+
+header g-api-key
+
+Partner API key, returned as token by POST /octo-gateway/v1/register or issued by Groupon. Format: grpn_ + 8 hex + _ + 56 hex. Send it on every request except POST /octo-gateway/v1/register. This is not a bearer token: Authorization: Bearer ... returns 401.
+
+#### Parameters
+
+- 
+cartIdstringpathrequired
+
+#### Request body
+
+- 
+itemsobject[]requiredShow properties
+- 
+productIdstringrequired
+
+- 
+optionIdstringrequired
+
+- 
+quantitynumberrequired
+
+- 
+expectedPricenumber
+
+The per-unit price your site is showing, in minor units. When it disagrees with Groupon's live price the call fails with PRICE_MISMATCH and reports the current price, so the shopper never sees one price on your site and another at checkout. Optional, but strongly recommended.
+
+- 
+countrystring
+
+ISO-3166 alpha-2 country code. Use US -- currently only US inventory is exposed.
+
+#### Responses
+200 
+Successful response
+
+- 
+idstringrequired
+
+- 
+status"ACTIVE" | "LOCKED" | "CHECKED_OUT" | "EXPIRED" | "ABANDONED"required
+
+The cart's lifecycle state.
+
+- 
+testModebooleanrequired
+
+- 
+partnerobjectrequired
+
+The partner the cart belongs to -- you.
+
+Show properties
+- 
+partnerIdstringrequired
+
+Your partner id: the stable identifier stamped on orders placed from this cart. It does not change when your API key is rotated.
+
+- 
+namestring | nullrequired
+
+Your display name, as shown to shoppers on Groupon's checkout page.
+
+- 
+buyLinkstringrequired
+
+The checkout URL for this cart. Send the shopper here to pay. Always present. Use it verbatim and take it from the most recent cart response: it is rebuilt on every call.
+
+With CJ (a CJ publisher id is registered for your API key): an affiliate link that credits your CJ account with the sale. Without CJ: the direct Groupon checkout page for the cart; no affiliate attribution applies.
+
+- 
+countrystringrequired
+
+ISO-3166 alpha-2 country code. Use US -- currently only US inventory is exposed.
+
+- 
+currencystringrequired
+
+- 
+clientReferencestring | nullrequired
+
+- 
+itemCountnumberrequired
+
+- 
+itemsobject[]requiredShow properties
+- 
+idstringrequired
+
+- 
+productIdstringrequired
+
+- 
+optionIdstringrequired
+
+- 
+titlestring | nullrequired
+
+- 
+optionTitlestring | nullrequired
+
+- 
+mediaobject[]required
+
+- 
+urlstringrequired
+
+- 
+rolestringrequired
+
+- 
+widthnumber | nullrequired
+
+- 
+heightnumber | nullrequired
+
+- 
+quantitynumberrequired
+
+- 
+availablebooleanrequired
+
+- 
+unavailableReason"SOLD_OUT" | "DEAL_ENDED" | "OPTION_REMOVED"required
+
+Why a cart line cannot be bought, or null when it is available.
+
+- 
+pricingobject | nullrequired
+
+What one cart line costs.
+
+null on a line whose price could not be read; messages[] says why.
+
+Show properties
+- 
+originalnumberrequired
+
+- 
+retailnumberrequired
+
+- 
+netnumber | nullrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+includedTaxesobject[]required
+
+Tax already included in retail, itemised.
+
+Empty when Groupon publishes no per-line tax breakdown for this deal.
+
+Show properties
+- 
+namestringrequired
+
+- 
+retailnumberrequired
+
+- 
+originalnumberrequired
+
+- 
+netnumber | nullrequired
+
+Groupon exposes no partner-net tax at this layer, so net is null (spec allows it).
+
+- 
+lineTotalnumber | nullrequired
+
+pricing.retail * quantity, or null when pricing is null (degraded line -- excluded from totals, not treated as $0).
+
+- 
+totalsobjectrequired
+
+Cart totals, in minor units.
+
+A line whose price could not be read contributes nothing here; messages[]
+says which, so a total is never silently short.
+
+Show properties
+- 
+subtotalnumberrequired
+
+- 
+savingsnumberrequired
+
+- 
+grandTotalnumberrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+messagesobject[]requiredShow properties
+- 
+type"warning" | "info"required
+
+- 
+codestringrequired
+
+- 
+contentstringrequired
+
+- 
+pathstringrequired
+
+JSONPath into the cart response, e.g. $.items[0].
+
+- 
+utcCreatedAtstring | nullrequired
+
+- 
+utcUpdatedAtstring | nullrequired
+
+- 
+utcExpiresAtstring | nullrequired
+401 
+Missing or invalid API key.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+Always null on an authentication failure.
+
+default 
+Error. The HTTP status reflects code; the endpoint's own error is in details.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+The error every failed request reports. Branch on error, never on errorMessage. The five price fields are present only when error is PRICE_MISMATCH.
+
+Show properties
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"required
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestringrequired
+
+Human-readable explanation, for your logs. Do not branch on it.
+
+- 
+requestIdstringrequired
+
+Quote it when contacting Groupon about the failure.
+
+- 
+pathstring
+
+PRICE_MISMATCH only: JSONPath into your request naming the item concerned, e.g. $.items[0] or $.expectedPrice.
+
+- 
+expectedPricenumber
+
+PRICE_MISMATCH only: the price you sent, in minor units.
+
+- 
+currentPricenumber
+
+PRICE_MISMATCH only: the current price, in minor units. Re-render with it and retry in one round-trip.
+
+- 
+currencystring
+
+PRICE_MISMATCH only: ISO-4217 currency of both prices.
+
+- 
+currencyPrecisionnumber
+
+PRICE_MISMATCH only: decimal places to divide by for display.
+
+## Change the quantity of an item
+
+PATCH/octo-gateway/v1/carts/{cartId}/items/{itemId}
+https://api.enc.groupon.com/octo-gateway/v1/carts/{cartId}/items/{itemId} OpenAPI document <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>
+
+Change the quantity of one cart item.
+
+The quantity you send REPLACES the line's quantity (unlike adding an item,
+which increases it). Valid range is 1 to 100; to remove a line, use the
+remove-item endpoint rather than setting the quantity to zero.
+
+Returns the full updated cart, including a fresh buyLink.
+
+header g-api-key
+
+Partner API key, returned as token by POST /octo-gateway/v1/register or issued by Groupon. Format: grpn_ + 8 hex + _ + 56 hex. Send it on every request except POST /octo-gateway/v1/register. This is not a bearer token: Authorization: Bearer ... returns 401.
+
+#### Parameters
+
+- 
+cartIdstringpathrequired
+
+- 
+itemIdstringpathrequired
+
+#### Request body
+
+- 
+quantitynumberrequired
+
+- 
+expectedPricenumber
+
+The per-unit price your site is showing, in minor units. When it disagrees with Groupon's live price the call fails with PRICE_MISMATCH and reports the current price, so the shopper never sees one price on your site and another at checkout. Optional, but strongly recommended.
+
+- 
+countrystring
+
+ISO-3166 alpha-2 country code. Use US -- currently only US inventory is exposed.
+
+#### Responses
+200 
+Successful response
+
+- 
+idstringrequired
+
+- 
+status"ACTIVE" | "LOCKED" | "CHECKED_OUT" | "EXPIRED" | "ABANDONED"required
+
+The cart's lifecycle state.
+
+- 
+testModebooleanrequired
+
+- 
+partnerobjectrequired
+
+The partner the cart belongs to -- you.
+
+Show properties
+- 
+partnerIdstringrequired
+
+Your partner id: the stable identifier stamped on orders placed from this cart. It does not change when your API key is rotated.
+
+- 
+namestring | nullrequired
+
+Your display name, as shown to shoppers on Groupon's checkout page.
+
+- 
+buyLinkstringrequired
+
+The checkout URL for this cart. Send the shopper here to pay. Always present. Use it verbatim and take it from the most recent cart response: it is rebuilt on every call.
+
+With CJ (a CJ publisher id is registered for your API key): an affiliate link that credits your CJ account with the sale. Without CJ: the direct Groupon checkout page for the cart; no affiliate attribution applies.
+
+- 
+countrystringrequired
+
+ISO-3166 alpha-2 country code. Use US -- currently only US inventory is exposed.
+
+- 
+currencystringrequired
+
+- 
+clientReferencestring | nullrequired
+
+- 
+itemCountnumberrequired
+
+- 
+itemsobject[]requiredShow properties
+- 
+idstringrequired
+
+- 
+productIdstringrequired
+
+- 
+optionIdstringrequired
+
+- 
+titlestring | nullrequired
+
+- 
+optionTitlestring | nullrequired
+
+- 
+mediaobject[]required
+
+- 
+urlstringrequired
+
+- 
+rolestringrequired
+
+- 
+widthnumber | nullrequired
+
+- 
+heightnumber | nullrequired
+
+- 
+quantitynumberrequired
+
+- 
+availablebooleanrequired
+
+- 
+unavailableReason"SOLD_OUT" | "DEAL_ENDED" | "OPTION_REMOVED"required
+
+Why a cart line cannot be bought, or null when it is available.
+
+- 
+pricingobject | nullrequired
+
+What one cart line costs.
+
+null on a line whose price could not be read; messages[] says why.
+
+Show properties
+- 
+originalnumberrequired
+
+- 
+retailnumberrequired
+
+- 
+netnumber | nullrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+includedTaxesobject[]required
+
+Tax already included in retail, itemised.
+
+Empty when Groupon publishes no per-line tax breakdown for this deal.
+
+Show properties
+- 
+namestringrequired
+
+- 
+retailnumberrequired
+
+- 
+originalnumberrequired
+
+- 
+netnumber | nullrequired
+
+Groupon exposes no partner-net tax at this layer, so net is null (spec allows it).
+
+- 
+lineTotalnumber | nullrequired
+
+pricing.retail * quantity, or null when pricing is null (degraded line -- excluded from totals, not treated as $0).
+
+- 
+totalsobjectrequired
+
+Cart totals, in minor units.
+
+A line whose price could not be read contributes nothing here; messages[]
+says which, so a total is never silently short.
+
+Show properties
+- 
+subtotalnumberrequired
+
+- 
+savingsnumberrequired
+
+- 
+grandTotalnumberrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+messagesobject[]requiredShow properties
+- 
+type"warning" | "info"required
+
+- 
+codestringrequired
+
+- 
+contentstringrequired
+
+- 
+pathstringrequired
+
+JSONPath into the cart response, e.g. $.items[0].
+
+- 
+utcCreatedAtstring | nullrequired
+
+- 
+utcUpdatedAtstring | nullrequired
+
+- 
+utcExpiresAtstring | nullrequired
+401 
+Missing or invalid API key.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+Always null on an authentication failure.
+
+default 
+Error. The HTTP status reflects code; the endpoint's own error is in details.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+The error every failed request reports. Branch on error, never on errorMessage. The five price fields are present only when error is PRICE_MISMATCH.
+
+Show properties
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"required
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestringrequired
+
+Human-readable explanation, for your logs. Do not branch on it.
+
+- 
+requestIdstringrequired
+
+Quote it when contacting Groupon about the failure.
+
+- 
+pathstring
+
+PRICE_MISMATCH only: JSONPath into your request naming the item concerned, e.g. $.items[0] or $.expectedPrice.
+
+- 
+expectedPricenumber
+
+PRICE_MISMATCH only: the price you sent, in minor units.
+
+- 
+currentPricenumber
+
+PRICE_MISMATCH only: the current price, in minor units. Re-render with it and retry in one round-trip.
+
+- 
+currencystring
+
+PRICE_MISMATCH only: ISO-4217 currency of both prices.
+
+- 
+currencyPrecisionnumber
+
+PRICE_MISMATCH only: decimal places to divide by for display.
+
+## Remove an item
+
+DELETE/octo-gateway/v1/carts/{cartId}/items/{itemId}
+https://api.enc.groupon.com/octo-gateway/v1/carts/{cartId}/items/{itemId} OpenAPI document <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>
+
+Remove one item from a cart.
+
+itemId is the cart line's id, which is the optionId the line was
+created from. Returns the full updated cart; removing the last line leaves a
+cart with itemCount: 0 rather than deleting it.
+
+header g-api-key
+
+Partner API key, returned as token by POST /octo-gateway/v1/register or issued by Groupon. Format: grpn_ + 8 hex + _ + 56 hex. Send it on every request except POST /octo-gateway/v1/register. This is not a bearer token: Authorization: Bearer ... returns 401.
+
+#### Parameters
+
+- 
+cartIdstringpathrequired
+
+- 
+itemIdstringpathrequired
+
+#### Responses
+200 
+Successful response
+
+- 
+idstringrequired
+
+- 
+status"ACTIVE" | "LOCKED" | "CHECKED_OUT" | "EXPIRED" | "ABANDONED"required
+
+The cart's lifecycle state.
+
+- 
+testModebooleanrequired
+
+- 
+partnerobjectrequired
+
+The partner the cart belongs to -- you.
+
+Show properties
+- 
+partnerIdstringrequired
+
+Your partner id: the stable identifier stamped on orders placed from this cart. It does not change when your API key is rotated.
+
+- 
+namestring | nullrequired
+
+Your display name, as shown to shoppers on Groupon's checkout page.
+
+- 
+buyLinkstringrequired
+
+The checkout URL for this cart. Send the shopper here to pay. Always present. Use it verbatim and take it from the most recent cart response: it is rebuilt on every call.
+
+With CJ (a CJ publisher id is registered for your API key): an affiliate link that credits your CJ account with the sale. Without CJ: the direct Groupon checkout page for the cart; no affiliate attribution applies.
+
+- 
+countrystringrequired
+
+ISO-3166 alpha-2 country code. Use US -- currently only US inventory is exposed.
+
+- 
+currencystringrequired
+
+- 
+clientReferencestring | nullrequired
+
+- 
+itemCountnumberrequired
+
+- 
+itemsobject[]requiredShow properties
+- 
+idstringrequired
+
+- 
+productIdstringrequired
+
+- 
+optionIdstringrequired
+
+- 
+titlestring | nullrequired
+
+- 
+optionTitlestring | nullrequired
+
+- 
+mediaobject[]required
+
+- 
+urlstringrequired
+
+- 
+rolestringrequired
+
+- 
+widthnumber | nullrequired
+
+- 
+heightnumber | nullrequired
+
+- 
+quantitynumberrequired
+
+- 
+availablebooleanrequired
+
+- 
+unavailableReason"SOLD_OUT" | "DEAL_ENDED" | "OPTION_REMOVED"required
+
+Why a cart line cannot be bought, or null when it is available.
+
+- 
+pricingobject | nullrequired
+
+What one cart line costs.
+
+null on a line whose price could not be read; messages[] says why.
+
+Show properties
+- 
+originalnumberrequired
+
+- 
+retailnumberrequired
+
+- 
+netnumber | nullrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+includedTaxesobject[]required
+
+Tax already included in retail, itemised.
+
+Empty when Groupon publishes no per-line tax breakdown for this deal.
+
+Show properties
+- 
+namestringrequired
+
+- 
+retailnumberrequired
+
+- 
+originalnumberrequired
+
+- 
+netnumber | nullrequired
+
+Groupon exposes no partner-net tax at this layer, so net is null (spec allows it).
+
+- 
+lineTotalnumber | nullrequired
+
+pricing.retail * quantity, or null when pricing is null (degraded line -- excluded from totals, not treated as $0).
+
+- 
+totalsobjectrequired
+
+Cart totals, in minor units.
+
+A line whose price could not be read contributes nothing here; messages[]
+says which, so a total is never silently short.
+
+Show properties
+- 
+subtotalnumberrequired
+
+- 
+savingsnumberrequired
+
+- 
+grandTotalnumberrequired
+
+- 
+currencystringrequired
+
+- 
+currencyPrecisionnumberrequired
+
+- 
+messagesobject[]requiredShow properties
+- 
+type"warning" | "info"required
+
+- 
+codestringrequired
+
+- 
+contentstringrequired
+
+- 
+pathstringrequired
+
+JSONPath into the cart response, e.g. $.items[0].
+
+- 
+utcCreatedAtstring | nullrequired
+
+- 
+utcUpdatedAtstring | nullrequired
+
+- 
+utcExpiresAtstring | nullrequired
+401 
+Missing or invalid API key.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+Always null on an authentication failure.
+
+default 
+Error. The HTTP status reflects code; the endpoint's own error is in details.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+The error every failed request reports. Branch on error, never on errorMessage. The five price fields are present only when error is PRICE_MISMATCH.
+
+Show properties
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"required
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestringrequired
+
+Human-readable explanation, for your logs. Do not branch on it.
+
+- 
+requestIdstringrequired
+
+Quote it when contacting Groupon about the failure.
+
+- 
+pathstring
+
+PRICE_MISMATCH only: JSONPath into your request naming the item concerned, e.g. $.items[0] or $.expectedPrice.
+
+- 
+expectedPricenumber
+
+PRICE_MISMATCH only: the price you sent, in minor units.
+
+- 
+currentPricenumber
+
+PRICE_MISMATCH only: the current price, in minor units. Re-render with it and retry in one round-trip.
+
+- 
+currencystring
+
+PRICE_MISMATCH only: ISO-4217 currency of both prices.
+
+- 
+currencyPrecisionnumber
+
+PRICE_MISMATCH only: decimal places to divide by for display.
+
+# Partner bookings
+
+When to call it, the status meanings and polling are in Checkout and order confirmation.
+
+## Read an order
+
+GET/octo-gateway/v1/partner-bookings/{uuid}
+https://api.enc.groupon.com/octo-gateway/v1/partner-bookings/{uuid} OpenAPI document <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>
+
+Read an order after checkout, by the grouponOrderUuid Groupon appends to your redirect URL.
+
+Gives the order's status and, under items, every product and option
+that was bought with one "View on Groupon" link per ticket, so you can confirm the
+purchase, match each item to the cart line you sent, and show the shopper their vouchers.
+
+Poll this after the shopper returns from checkout. An order may briefly
+report as pending before payment settles.
+
+header g-api-key
+
+Partner API key, returned as token by POST /octo-gateway/v1/register or issued by Groupon. Format: grpn_ + 8 hex + _ + 56 hex. Send it on every request except POST /octo-gateway/v1/register. This is not a bearer token: Authorization: Bearer ... returns 401.
+
+#### Parameters
+
+- 
+uuidstringpathrequired
+
+#### Responses
+200 
+Successful response
+
+- 
+idstring
+
+- 
+uuidstring
+
+- 
+status"ON_HOLD" | "CONFIRMED" | "REDEEMED" | "CANCELLED" | "EXPIRED" | "REJECTED" | "PENDING"
+
+The lifecycle state of a booking.
+
+ | Value
+ | Meaning
+
+ | ON_HOLD
+ | Reserved, and either no payment has been taken yet, or payment was taken but the tickets' state could not be read yet. Read the order again later.
+
+ | CONFIRMED
+ | Paid and reserved. The shopper's vouchers are available.
+
+ | REDEEMED
+ | The shopper has used the booking.
+
+ | CANCELLED
+ | Cancelled or refunded.
+
+ | REJECTED
+ | The hold was taken but payment could not be captured. Not redeemable, and it will not become redeemable.
+
+ | EXPIRED
+ | The hold lapsed before payment.
+
+ | PENDING
+ | Payment is being processed, or it has been taken and the tickets are still being issued. Read the order again later.
+
+- 
+supplierReferencestring | null
+
+Groupon's own reference for this order, or null when there is none yet.
+
+- 
+utcCreatedAtstring
+
+When the order was placed.
+
+- 
+itemsobject[]
+
+The order's items, one per product and option purchased, in the order they were bought. An order placed from a cart has one item per cart line; every ticket belongs to exactly one item. Never empty on a 200. A Groupon extension: the OCTO booking model describes a single product.
+
+Show properties
+- 
+productIdstring | nullrequired
+
+The product, as id on GET /products and as productId on the cart item you sent. Use it to join this line back to your catalog. null when the product is no longer in the catalog; optionId still identifies what was bought.
+
+- 
+optionIdstringrequired
+
+The option bought, as options[].id on GET /products and optionId on the cart item.
+
+- 
+quantitynumberrequired
+
+How many of this option were bought.
+
+- 
+status"ON_HOLD" | "CONFIRMED" | "REDEEMED" | "CANCELLED" | "EXPIRED" | "REJECTED" | "PENDING"required
+
+This item's own state. It can differ from the order's: one item may be fully redeemed while another is still confirmed. The order's status is never more advanced than its least-advanced item. Cancelled items are set aside: an order with some items cancelled takes the status of the rest.
+
+- 
+unitItemsobject[]required
+
+One entry per ticket of this item.
+
+Show properties
+- 
+uuidstringrequired
+
+This ticket's instance id — order.items[].inventoryUnits[i].id.
+
+- 
+status"ON_HOLD" | "CONFIRMED" | "REDEEMED" | "CANCELLED" | "EXPIRED" | "REJECTED" | "PENDING"required
+
+The lifecycle state of a booking.
+
+ | Value
+ | Meaning
+
+ | ON_HOLD
+ | Reserved, and either no payment has been taken yet, or payment was taken but the tickets' state could not be read yet. Read the order again later.
+
+ | CONFIRMED
+ | Paid and reserved. The shopper's vouchers are available.
+
+ | REDEEMED
+ | The shopper has used the booking.
+
+ | CANCELLED
+ | Cancelled or refunded.
+
+ | REJECTED
+ | The hold was taken but payment could not be captured. Not redeemable, and it will not become redeemable.
+
+ | EXPIRED
+ | The hold lapsed before payment.
+
+ | PENDING
+ | Payment is being processed, or it has been taken and the tickets are still being issued. Read the order again later.
+
+- 
+myGrouponUrlstringrequired
+
+A link to this unit on My Groupon, where the shopper views and redeems it.
+
+Show it to the shopper after checkout; it is their voucher.
+
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestring
+
+- 
+requestIdstring
+401 
+Missing or invalid API key.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+Always null on an authentication failure.
+
+default 
+Error. The body is the error object itself, always with HTTP 400. Branch on error, not on the status.
+
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"required
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestringrequired
+
+Human-readable explanation, for your logs. Do not branch on it.
+
+- 
+requestIdstringrequired
+
+Quote it when contacting Groupon about the failure.
+
+- 
+pathstring
+
+PRICE_MISMATCH only: JSONPath into your request naming the item concerned, e.g. $.items[0] or $.expectedPrice.
+
+- 
+expectedPricenumber
+
+PRICE_MISMATCH only: the price you sent, in minor units.
+
+- 
+currentPricenumber
+
+PRICE_MISMATCH only: the current price, in minor units. Re-render with it and retry in one round-trip.
+
+- 
+currencystring
+
+PRICE_MISMATCH only: ISO-4217 currency of both prices.
+
+- 
+currencyPrecisionnumber
+
+PRICE_MISMATCH only: decimal places to divide by for display.
+
+# Supplier
+
+## Get your supplier record
+
+GET/octo-gateway/v1/supplier
+https://api.enc.groupon.com/octo-gateway/v1/supplier OpenAPI document <https://api.enc.groupon.com/octo-gateway/v1/openapi.json>
+
+Your supplier record.
+
+Identifies the Groupon entity your bookings are made against. Read it once at
+onboarding to confirm your integration is pointed at the right supplier; it
+does not change between requests.
+
+header g-api-key
+
+Partner API key, returned as token by POST /octo-gateway/v1/register or issued by Groupon. Format: grpn_ + 8 hex + _ + 56 hex. Send it on every request except POST /octo-gateway/v1/register. This is not a bearer token: Authorization: Bearer ... returns 401.
+
+#### Responses
+200 
+Successful response
+
+- 
+idstring
+
+- 
+namestring
+
+- 
+endpointstring
+
+- 
+contactobject
+
+The supplier's contact block (all fields optional per OCTO).
+
+Show properties
+- 
+websitestring | nullrequired
+
+- 
+emailstring | nullrequired
+
+- 
+telephonestring | nullrequired
+
+- 
+addressstring | nullrequired
+
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestring
+
+- 
+requestIdstring
+401 
+Missing or invalid API key.
+
+- 
+codestringrequired
+
+Machine-readable failure class, for example invalid_argument, not_found or unauthenticated.
+
+- 
+messagestringrequired
+
+Human-readable explanation. Do not branch on it.
+
+- 
+detailsobject | null
+
+Always null on an authentication failure.
+
+default 
+Error. The body is the error object itself, always with HTTP 400. Branch on error, not on the status.
+
+- 
+error"INVALID_PRODUCT_ID" | "INVALID_BOOKING_UUID" | "INVALID_CART_ID" | "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_BOOKING_STATE" | "UNPROCESSABLE_ENTITY" | "PRICE_MISMATCH" | "PRODUCT_NOT_CARTABLE" | "CART_ITEM_LIMIT" | "RATE_LIMITED" | "SELF_REGISTRATION_CLOSED" | "INTERNAL_SERVER_ERROR"required
+
+The machine-readable error code returned on a failed request.
+
+Every error response carries one of these as error, alongside a
+human-readable errorMessage. Branch on the code, not the message.
+
+- 
+errorMessagestringrequired
+
+Human-readable explanation, for your logs. Do not branch on it.
+
+- 
+requestIdstringrequired
+
+Quote it when contacting Groupon about the failure.
+
+- 
+pathstring
+
+PRICE_MISMATCH only: JSONPath into your request naming the item concerned, e.g. $.items[0] or $.expectedPrice.
+
+- 
+expectedPricenumber
+
+PRICE_MISMATCH only: the price you sent, in minor units.
+
+- 
+currentPricenumber
+
+PRICE_MISMATCH only: the current price, in minor units. Re-render with it and retry in one round-trip.
+
+- 
+currencystring
+
+PRICE_MISMATCH only: ISO-4217 currency of both prices.
+
+- 
+currencyPrecisionnumber
+
+PRICE_MISMATCH only: decimal places to divide by for display.
+
+# Support
+
+When you contact Groupon about a failed call, include:
+
+- the environment,
+
+- the endpoint,
+
+- the time in UTC,
+
+- the requestId from the error body (see Handling errors).
+
+Send it to req.partner.api@groupon.com <mailto:req.partner.api@groupon.com>. Use the same address to add a CJ publisher ID, and for key rotation, registration changes and any other question about the integration.

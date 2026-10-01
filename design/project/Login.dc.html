@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PIN login</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;font-family:'IBM Plex Sans', 'Segoe UI', sans-serif;color:#1E1F4B;background:#FBF8F3}
+a{color:#2B2D6E}a:hover{color:#B93A22}
+</style>
+</helmet>
+<div style="width: 1280px; height: 720px; box-sizing: border-box; background: #FBF8F3; display: flex; flex-direction: column; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; color: #1E1F4B">
+<main style="flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 48px">
+<form style="width: 400px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #E3DDD2; border-radius: 20px; padding: 36px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; gap: 12px"><svg width="36" height="36" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="7" y="3" width="3" height="9" fill="{{accent}}"></rect><rect x="14.5" y="0" width="3" height="12" fill="{{accent}}"></rect><rect x="22" y="3" width="3" height="9" fill="{{accent}}"></rect><path d="M3 25a13 13 0 0 1 26 0z" fill="#2B2D6E"></path><rect x="3" y="27.5" width="26" height="3" fill="{{accent}}"></rect></svg><span style="font-family: 'Sora', 'Trebuchet MS', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.02em">Zora Agent Lab</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><h1 style="margin: 0; font-family: 'Sora', 'Trebuchet MS', sans-serif; font-weight: 700; font-size: 26px">This lab is private</h1><p style="margin: 0; font-size: 15px; line-height: 1.5; color: #54567A">Enter the PIN you were given.</p></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="pin" style="font-size: 13px; font-weight: 500; color: #54567A">PIN</label><input id="pin" type="password" value="" autocomplete="one-time-code" style="min-height: 52px; box-sizing: border-box; padding: 10px 14px; border-radius: 10px; border: 1px solid #E3DDD2; font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 20px; letter-spacing: 0.3em; color: #1E1F4B; width: 100%"></div>
+<button type="button" style="width: 100%; min-height: 48px; box-sizing: border-box; padding: 12px 22px; border-radius: 10px; border: 1px solid #2B2D6E; background: #2B2D6E; color: #FFFFFF; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; cursor: pointer">Open</button>
+</form>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent": {"editor": "color", "default": "#FF6B4A", "options": ["#FF6B4A", "#F2A541", "#3A7CA5"]}, "$preview": {"width": 1280, "height": 720}}'>
+class Component extends DCLogic {
+renderVals() {
+return Object.assign({ accent: this.props.accent ?? '#FF6B4A' }, {});
+}
+}
+</script>
+</body>
+</html>

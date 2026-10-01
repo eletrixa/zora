@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Runs the gates, applies D1 migrations, deploys the Worker, smoke tests it on ZAL_PUBLIC_HOST
+# (default https://zorasocial.asajj.cz; a fork sets its own host here and in wrangler.jsonc "routes").
+#
+# Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+# Module:  bin/publish
+# Deps:    bun, wrangler 4 (OAuth login: it holds the d1 scope a narrow API token lacks), curl
+# Tested:  n/a (the smoke test at the end is the check)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+HOST="${ZAL_PUBLIC_HOST:-https://zorasocial.asajj.cz}"
+# The OAuth login is used on purpose: the deploy needs the d1 scope, which an API token may lack.
+unset CLOUDFLARE_API_TOKEN
+
+if grep -q '"database_id": "PENDING_CREATE"' wrangler.jsonc; then
+  echo "ABORT: the D1 database is not created yet (wrangler.jsonc holds PENDING_CREATE)" >&2
+  exit 1
+fi
+
+bun run typecheck
+bun test
+npx --yes wrangler@4 d1 migrations apply zorasocial --remote
+npx --yes wrangler@4 deploy
+
+sleep 8
+expect() { # path expected-status
+  local code
+  code=$(curl -s -o /dev/null -w '%{http_code}' "$HOST$1")
+  [ "$code" = "$2" ] || { echo "SMOKE FAIL: $1 answered $code, expected $2" >&2; exit 1; }
+  echo "smoke ok: $1 -> $code"
+}
+expect /health 200
+expect /logo.png 200
+expect / 200
+expect /find 200
+expect /scorecard 200
+expect /top-deals 301
+expect /robots.txt 200
+expect /admin/jobs/probe 401
+expect /api/v1/search 401
+expect /ingest/observations 401
+expect "/3pd/return?grouponOrderUuid=not-a-uuid" 400

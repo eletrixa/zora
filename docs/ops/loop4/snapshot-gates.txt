@@ -1,0 +1,8 @@
+# Gates run inside the public snapshot, commit f1e42e3, 2026-09-30 20:21 UTC, on a fresh checkout of the exported tree (node_modules linked from the machine's install)
+$ bun run typecheck
+$ tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json
+$ bun test
+ 809 pass
+ 0 fail
+ 2380 expect() calls
+Ran 809 tests across 73 files. [4.30s]

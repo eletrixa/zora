@@ -1,0 +1,18 @@
+# Fires zorasocial-collector.service once a day, spread over 15 minutes so it never lands on
+# the same second on every run.
+#
+# Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+# Module:  collector/zorasocial-collector.timer
+# Deps:    zorasocial-collector.service
+# Tested:  n/a (unit file)
+
+[Unit]
+Description=Daily zora public price collector
+
+[Timer]
+OnCalendar=*-*-* 05:30:00 UTC
+RandomizedDelaySec=900
+Persistent=true
+
+[Install]
+WantedBy=timers.target

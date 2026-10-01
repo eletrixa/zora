@@ -1,0 +1,9 @@
+{
+  // Typecheck for the Bun-run surfaces (test/, collector/, bin/*.ts). They use bun:test,
+  // bun:sqlite and node:fs, so bun-types joins the workers types. src comes in through imports.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["bun-types", "@cloudflare/workers-types"]
+  },
+  "include": ["test", "collector", "bin/*.ts"]
+}

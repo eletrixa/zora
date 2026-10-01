@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+# Registers the partner "Zora Agent Lab" with ONE call to POST /octo-gateway/v1/register and puts
+# the API key where it belongs: the vault and the Worker secret. The key is never printed.
+#
+# Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+# Module:  bin/register
+# Deps:    bash, curl, jq, wrangler 4 (OAuth login)
+# Tested:  test/bin/register.test.ts
+#
+# Why so careful (guide, "Onboarding and API key"):
+#   - every successful call creates a NEW partner and a NEW key, and there is no delete;
+#   - the key is shown once;
+#   - after a timeout the call may have succeeded, so a second call is never made blindly.
+#
+# Usage:  bin/register            asks for "yes" on the terminal
+#         bin/register --yes      for a run Robert has approved in words
+set -euo pipefail
+set +x
+umask 077
+
+VAULT="${ZAL_VAULT:-$HOME/s/.env.master}"
+STATE="${ZAL_STATE_DIR:-$HOME/s/zorasocial}"
+BASE="${ZAL_PARTNER_BASE_URL:-https://api.enc.groupon.com}"
+HOST="${ZAL_PUBLIC_HOST:-https://zorasocial.asajj.cz}"
+WRANGLER="${ZAL_WRANGLER:-npx --yes wrangler@4}"
+USER_AGENT="ZoraAgentLab/1.0 (+https://zorasocial.asajj.cz; partner-contact@example.com)"
+KEY_PATTERN='^grpn_[0-9a-f]{8}_[0-9a-f]{56}$'
+
+die() { echo "ABORT: $*" >&2; exit 1; }
+
+cd "$(dirname "$0")/.."
+command -v jq >/dev/null || die "jq is not installed"
+command -v curl >/dev/null || die "curl is not installed"
+[ -f "$VAULT" ] || die "vault $VAULT not found"
+
+# ---- never twice
+if grep -q '^GROUPON_PARTNER_API_KEY=' "$VAULT"; then
+  die "a partner key is already in the vault. One partner is enough; nothing was sent."
+fi
+mkdir -p "$STATE"
+chmod 700 "$STATE"
+if ls "$STATE"/register-attempt-* >/dev/null 2>&1; then
+  die "an earlier attempt is recorded in $STATE and its outcome is unknown. It may have created a partner. Email req.partner.api@groupon.com before registering again; remove the attempt file only after their answer."
+fi
+
+# ---- the two addresses Groupon will use must already answer
+LOGO_URL="$HOST/logo.png"
+REDIRECT_URL="$HOST/3pd/return"
+logo=$(curl -s -o /dev/null -m 20 -w '%{http_code} %{content_type}' "$LOGO_URL") || die "logo address not reachable"
+[ "$logo" = "200 image/png" ] || die "logo address answered '$logo', expected '200 image/png'"
+# Without an order id the return page answers 400; that proves the route is live and public.
+back=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "$REDIRECT_URL") || die "return address not reachable"
+[ "$back" = "400" ] || die "return address answered $back, expected 400 (live, public, no order id given)"
+
+PAYLOAD=$(jq -n \
+  --arg displayName "Zora Agent Lab" \
+  --arg partnerContactName "Robert Vojacek" \
+  --arg partnerContactEmail "partner-contact@example.com" \
+  --arg logoUrl "$LOGO_URL" \
+  --arg redirectUrl "$REDIRECT_URL" \
+  '{displayName: $displayName, partnerContactName: $partnerContactName, partnerContactEmail: $partnerContactEmail, logoUrl: $logoUrl, redirectUrl: $redirectUrl}')
+
+echo "This creates a production partner at Groupon. It cannot be deleted, and its values change only by email."
+echo "$PAYLOAD"
+if [ "${1:-}" != "--yes" ]; then
+  [ -r /dev/tty ] || die "no terminal to confirm on. Run it yourself, or pass --yes after Robert approved."
+  printf 'Type yes to send this once: ' > /dev/tty
+  read -r answer < /dev/tty
+  [ "$answer" = "yes" ] || die "not confirmed; nothing was sent"
+fi
+
+# ---- one call, no retry
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+REQUEST_ID=$(cat /proc/sys/kernel/random/uuid)
+ATTEMPT="$STATE/register-attempt-$STAMP"
+RESPONSE="$STATE/register-response-$STAMP.json"
+printf 'request id %s\nstarted %s\n' "$REQUEST_ID" "$STAMP" > "$ATTEMPT"
+
+set +e
+status=$(curl -sS -m "${ZAL_TIMEOUT_SEC:-60}" -o "$RESPONSE" -w '%{http_code}' -X POST "$BASE/octo-gateway/v1/register" \
+  -H 'content-type: application/json' -H "user-agent: $USER_AGENT" -H "x-request-id: $REQUEST_ID" \
+  --data "$PAYLOAD" 2>"$STATE/register-curl-$STAMP.err")
+curl_exit=$?
+set -e
+chmod 600 "$RESPONSE" 2>/dev/null || true
+
+if [ "$curl_exit" -ne 0 ]; then
+  echo "The call did not finish (curl exit $curl_exit). It MAY have created a partner." >&2
+  echo "Do not run this again. Email req.partner.api@groupon.com with request id $REQUEST_ID." >&2
+  echo "The attempt file $ATTEMPT blocks a second run." >&2
+  exit 1
+fi
+
+token=$(jq -r '.token // empty' "$RESPONSE" 2>/dev/null || true)
+partner_id=$(jq -r '.partner.partnerId // empty' "$RESPONSE" 2>/dev/null || true)
+
+if [ -z "$token" ]; then
+  code=$(jq -r '.error // .details.error // .code // "UNPARSEABLE"' "$RESPONSE" 2>/dev/null || echo UNPARSEABLE)
+  message=$(jq -r '.errorMessage // .message // ""' "$RESPONSE" 2>/dev/null || true)
+  echo "Registration refused: HTTP $status, code $code. $message" >&2
+  case "$code" in
+    BAD_REQUEST|invalid_argument|RATE_LIMITED|SELF_REGISTRATION_CLOSED)
+      # A definite refusal created nothing, so a corrected run is safe.
+      rm -f "$ATTEMPT"
+      echo "Nothing was created. Fix the cause, then run again (refused calls count toward 5 per hour)." >&2 ;;
+    *)
+      echo "The outcome is not certain. The attempt file $ATTEMPT blocks a second run." >&2
+      echo "Email req.partner.api@groupon.com with request id $REQUEST_ID." >&2 ;;
+  esac
+  exit 1
+fi
+
+# ---- the key goes to the vault first: from here on it exists in two safe places or none
+if ! printf '%s' "$token" | grep -Eq "$KEY_PATTERN"; then
+  echo "WARNING: the key does not look like the documented format; it is stored as received." >&2
+fi
+{
+  printf '\n# Groupon Partner Storefront API, partner "Zora Agent Lab", registered %s\n' "$STAMP"
+  printf 'GROUPON_PARTNER_ID=%s\n' "$partner_id"
+  printf 'GROUPON_PARTNER_API_KEY=%s\n' "$token"
+} >> "$VAULT"
+
+# Keep the record, drop the secret: the response file stays without the key.
+jq 'del(.token)' "$RESPONSE" > "$RESPONSE.tmp" && mv "$RESPONSE.tmp" "$RESPONSE"
+chmod 600 "$RESPONSE"
+mv "$ATTEMPT" "$STATE/register-done-$STAMP"
+
+echo "Registered. Partner id: $partner_id"
+echo "The key is in the vault as GROUPON_PARTNER_API_KEY."
+
+# ---- Worker secret (the key travels on stdin, never on a command line)
+if printf '%s' "$token" | env -u CLOUDFLARE_API_TOKEN $WRANGLER secret put GROUPON_PARTNER_API_KEY >/dev/null 2>"$STATE/register-wrangler-$STAMP.err"; then
+  echo "Worker secret GROUPON_PARTNER_API_KEY is set."
+else
+  echo "WARNING: the Worker secret was NOT set. The key is safe in the vault. Set it with:" >&2
+  echo "  grep -m1 '^GROUPON_PARTNER_API_KEY=' $VAULT | cut -d= -f2- | tr -d '\\n' | npx wrangler@4 secret put GROUPON_PARTNER_API_KEY" >&2
+fi
+
+# ---- read the registration back (the header comes from a file, so the key is not in the process list)
+HEADER="$STATE/.header-$STAMP"
+printf 'g-api-key: %s\n' "$token" > "$HEADER"
+me=$(curl -s -m 30 "$BASE/octo-gateway/v1/partners/me" -H @"$HEADER" -H "user-agent: $USER_AGENT" -H "x-request-id: $(cat /proc/sys/kernel/random/uuid)" || true)
+rm -f "$HEADER"
+unset token
+printf '%s' "$me" | jq -r '"partners/me: \(.displayName // "?"), status \(.status // "?"), error \(.error // .code // "none")"' 2>/dev/null || echo "partners/me: could not be read; try again in a minute"

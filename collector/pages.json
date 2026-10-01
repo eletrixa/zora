@@ -1,0 +1,21 @@
+{
+  "_comment": "Read first by collector/run.ts. host is the zorasocial Worker; guideUrl is checked once per run for a version drift signal. See collector/README.md before enabling the timer. Pages chosen 2026-09-30 from the city/category pairs with the most listable products in D1; each answered HTTP 200 with nine deals.",
+  "host": "https://zorasocial.asajj.cz",
+  "guideUrl": "https://www.groupon.com/hubs/partner-storefront-api",
+  "listingPages": [
+    "https://www.groupon.com/local/new-york/massage",
+    "https://www.groupon.com/local/new-york/facial",
+    "https://www.groupon.com/local/new-york/beauty-and-spas",
+    "https://www.groupon.com/local/new-york/things-to-do",
+    "https://www.groupon.com/local/new-york/food-and-drink",
+    "https://www.groupon.com/local/los-angeles/facial",
+    "https://www.groupon.com/local/los-angeles/beauty-and-spas",
+    "https://www.groupon.com/local/houston/massage",
+    "https://www.groupon.com/local/houston/facial",
+    "https://www.groupon.com/local/miami/water-sports",
+    "https://www.groupon.com/local/miami/things-to-do",
+    "https://www.groupon.com/local/las-vegas/facial",
+    "https://www.groupon.com/local/las-vegas/beauty-and-spas",
+    "https://www.groupon.com/local/chicago/massage"
+  ]
+}

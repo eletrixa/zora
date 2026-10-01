@@ -1,0 +1,1710 @@
+Reading additional input from stdin...
+OpenAI Codex v0.156.1
+--------
+workdir: <the snapshot directory>
+model: gpt-6-astra
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: ultra
+reasoning summaries: none
+session id: 01a0f3f6-b7ff-7492-818d-d58fa531ff1e
+--------
+user
+You are the CEO who asked for this today. Your ask, in your own words: "So that we can show this
+somewhere, could you build a category picker (fine to limit it to Things To Do), a city picker (the top
+50 cities is enough), and have it as a page listing the top 20 deals on Groupon in the chosen city and
+category, sortable by the absolute amount saved and by the percentage? For the price, show only the
+original one and then the fully final one after the discount is applied. We can then present this as an
+example of an AI Builder project: export the prompts that show how it was made, and put the source on git."
+Your working directory is the public repository of what was built. Start with `README.md`,
+`docs/ai-builder/README.md`, `docs/ai-builder/prompts/README.md` and `docs/ops/loop4.md`; open
+anything else you need. The folder `review/` holds the rendered page as served (`top-deals.html`), the
+acceptance run (`walkthrough.txt`) and the two screenshots you were given (desktop and phone).
+Review it as that CEO would, for showing it to people as an example of an AI Builder project. Score each
+lens 1 to 5 as a whole number, with a short quote from the repository as the citation:
+- Impact obsessed: does it do exactly what was asked, and is it worth showing?
+- Simplify to scale: does one authoritative page say who it is for, what it does, where it lives and how
+  success is measured; could a builder reproduce it from the prompts?
+- Disciplined: does every number and claim have a source; are there tests, acceptance criteria and run
+  records?
+- Speed over comfort: is it shipped and live, is the time from ask to live stated, is anything half-built?
+- Extreme ownership: is there an owner, are the open items and honesty notes stated, are the next steps
+  clear?
+Then answer: the single strongest reason you would reject this; what is asserted without evidence; what you
+would need to know that this does not tell you; overall stars 1 to 5; a two-sentence narrative; the three
+changes that would raise the score most.
+Answer as one JSON object with the fields: lenses (an object with the five lens names, each holding
+score and citation), reject_reason, unevidenced, missing, stars, narrative, top_changes (an array of three
+strings). No text outside the JSON.
+hook: SessionStart
+hook: SessionStart Completed
+codex
+I’ll read the brief, prompt archive, and acceptance records, then compare them with the rendered page and screenshots.
+exec
+/usr/bin/bash -lc "pwd && rg --files -g 'AGENTS.md' -g 'README.md' -g 'loop4.md' -g 'walkthrough.txt' -g 'lanes.json' -g 'package.json' -g '*accept*' -g '*prompt*' -g '*top-deal*' -g '*topdeal*' -g '*score*' -g '*handoff*' -g '*brief*'" in <the snapshot directory>
+ succeeded in 0ms:
+<the snapshot directory>
+README.md
+AGENTS.md
+review/top-deals-phone.png
+review/top-deals-desktop.png
+review/walkthrough.txt
+review/top-deals.html
+collector/README.md
+test/ui/pages/top-deals.test.tsx
+test/ui/pages/scorecard.test.tsx
+changes/ui-top-deals.md
+changes/ui-scorecard.md
+changes/top-deals.md
+test/probe/scorecard.test.ts
+src/ui/pages/top-deals.tsx
+src/ui/pages/scorecard.tsx
+src/ui/components/README.md
+src/probe/scorecard.ts
+package.json
+lanes.json
+docs/reference/README.md
+docs/ops/runs/ui-top-deals.md
+docs/ops/runs/top-deals.md
+docs/ops/loop4/top-deals-phone.png
+docs/ops/loop4/top-deals-desktop.png
+docs/ops/loop4.md
+design/README.md
+docs/ops/loop3/scorecard-phone.png
+docs/ops/loop3/scorecard-desktop.png
+docs/ai-builder/README.md
+docs/ai-builder/prompts/README.md
+docs/ai-builder/prompts/12-ceo-review-prompt.md
+docs/ai-builder/prompts/04-design-prompt.md
+docs/lanes/ui-top-deals.md
+docs/lanes/ui-components-top-deals.md
+docs/lanes/top-deals.md
+
+exec
+/usr/bin/bash -lc 'cat README.md docs/ai-builder/README.md docs/ai-builder/prompts/README.md docs/ops/loop4.md' in <the snapshot directory>
+ succeeded in 0ms:
+<!-- Module: README.md · Tested: n/a -->
+# Zora Agent Lab
+
+Four products on the Groupon Partner Storefront API, live at `https://zorasocial.asajj.cz`.
+
+1. **Price truth monitor**. Measures the gap between the price shown and the price paid.
+2. **Partner experience daily probe**. Runs the partner flow against production every day and keeps a scorecard.
+3. **Agent shopping tool**. A request in plain words returns deals and one checkout link, over HTTP, MCP and a CLI.
+4. **Top deals**. Pick a category and a city, see the 20 deals with the largest discount, by amount or by percent, with the original price and the price to pay.
+
+## What is live
+
+The partner is registered; the full catalogue is loaded, 55,859 listable products. Every page is
+designed and public, told to crawlers to stay out: the daily probe, the price truth monitor, the
+agent API, MCP and CLI, and the Top deals page.
+
+## Gates
+
+```
+bun run typecheck
+bun test
+bun bin/lane-check.ts <lane>
+```
+
+`bun bin/lane-check.ts <lane>` fails when a lane's branch touches a file outside the globs it owns
+in `lanes.json`.
+
+## Run it yourself
+
+```
+bun install
+npx wrangler login
+npx wrangler d1 create zorasocial   # paste the id into wrangler.jsonc over PENDING_CREATE
+bun run db:init
+bun run dev
+```
+
+A `.dev.vars` file, gitignored, holds `GROUPON_PARTNER_API_KEY`, `ZAL_AGENT_TOKEN`,
+`ZAL_INGEST_TOKEN`, `ZAL_ADMIN_TOKEN`: any 16 or more character value for the three tokens, and the
+partner key from `bin/register` after changing the contact name and email in it. `bin/publish`
+deploys to production once the four secrets are set with `wrangler secret put`.
+
+## Publish
+
+```
+bin/publish
+```
+
+In order: aborts if `wrangler.jsonc` still holds a pending D1 database id, runs `bun run typecheck`
+and `bun test`, applies the D1 migrations to the remote database, deploys the Worker, then smoke
+tests `/health`, `/logo.png`, `/`, `/top-deals`, `/scorecard`, `/api/v1/search`,
+`/ingest/observations` and `/3pd/return` for their expected status codes. It deploys with the
+wrangler OAuth login, unsetting `CLOUDFLARE_API_TOKEN` first, because the deploy needs the D1 scope
+an API token may lack.
+
+## Register
+
+```
+bin/register
+```
+
+Registers the partner "Zora Agent Lab" with one call to `POST /octo-gateway/v1/register` and never
+runs it twice: it refuses if a key is already in the vault, and it refuses if an earlier attempt's
+outcome is still unknown (told instead to email `req.partner.api@groupon.com`). Before sending, it
+checks that the logo and return addresses already answer. It prints the payload and waits for
+`yes` on a terminal, unless run with `--yes` for an approval already given in words. After the one
+call, the key goes to the vault and to the Worker secret, and only the partner id is printed.
+
+## How an agent uses it
+
+HTTP, behind the `ZAL_AGENT_TOKEN` bearer token, under `/api/v1`:
+
+- `GET /api/v1/search` — text, state, city, category, max price, limit.
+- `GET /api/v1/deals/:productId` — full detail of one deal.
+- `POST /api/v1/checkout` — 1 to 20 `{ productId, optionId, quantity }` lines, returns a link,
+  a price change, an unavailable reason, a not-found, or an error.
+- `GET /api/v1/orders/:uuid` — order status and voucher links.
+
+MCP, same token, at `/mcp` (streamable HTTP), with four tools: `search_deals`, `get_deal`,
+`create_checkout_link`, `get_order_status`.
+
+CLI, `bin/zal`, over the HTTP API:
+
+```
+zal search <text...> [--state IL] [--city Chicago] [--category Massage] [--max 50] [--limit 10] [--json]
+zal deal <productId> [--json]
+zal checkout <productId> <optionId> [--qty 1] [--json]
+zal order <grouponOrderUuid> [--json]
+zal job <sync-full|sync-delta|probe|cart-sample|promo-gap|cart-sweep|category-walk|top-cities>
+zal help
+```
+
+`claude mcp add --transport http zora-agent-lab https://zorasocial.asajj.cz/mcp` adds the MCP
+server to a Claude Code session.
+
+**Price rule**: the price the shopper pays is always `pay` / `payMinor` / `payText`. A promo price
+is a separate field with its code and a sentence to type it at Groupon checkout; it is never the
+price to pay.
+
+## Secrets
+
+Four Worker secrets, set with `wrangler secret put`, never written into a file: `GROUPON_PARTNER_API_KEY`,
+`ZAL_AGENT_TOKEN`, `ZAL_INGEST_TOKEN`, `ZAL_ADMIN_TOKEN`. The
+master copy lives in the vault, `~/s/.env.master`.
+
+## The zora collector
+
+`collector/` reads the listing pages in `collector/pages.json`, plus the partner guide hub page,
+and posts what it saw to `<host>/ingest/observations`. It runs on the machine zora, once a day,
+never inside the Worker. Run it once by hand first with `bun collector/run.ts`; it exits non-zero
+if nothing was accepted. Install it as a systemd user timer:
+
+```
+mkdir -p ~/.config/systemd/user
+cp collector/zorasocial-collector.service collector/zorasocial-collector.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now zorasocial-collector.timer
+```
+
+## Parallel work
+
+Work is split into lanes; `lanes.json` says which files each lane owns. Each lane runs on its own
+branch, `lane/<name>`, in its own worktree. `bin/lane-worktrees <wave>` creates one worktree and
+branch per lane of a wave. `bin/lane-check.ts <lane>` fails a lane that touched a file it does not
+own. `bin/lane-merge <lane>` rebases the lane on main, runs the gates in the worktree, merges
+without fast-forward, then runs the gates again on main, undoing the merge if they fail.
+
+## Built with AI
+
+The Top deals page is published as an AI Builder example: the prompts that built it, and the
+loop that ran them, are in `docs/ai-builder/README.md`. This public repository is a snapshot made
+by an exporter that rewrites private strings to neutral phrases and scans for any that survive; the
+exporter itself stays in the private repository, because its rules list what it removes.
+
+## Design
+
+The screens are designed on a Claude Design canvas (`design/README.md` has the link); `design/`
+holds a copy of the canvas files, refreshed after the owner edits the canvas and before a UI lane
+starts.
+<!-- Module: docs/ai-builder/README.md · Tested: n/a -->
+# How the Top deals page was built with AI
+
+Zora Agent Lab is four products on the Groupon Partner Storefront API, live at
+`https://zorasocial.asajj.cz`. This folder shows one of them, the Top deals page, built end to end
+with the prompts that built it.
+
+## Who it is for
+
+A CEO who wants to show what one builder and a coding agent can ship in a day. A builder who wants
+to do the same.
+
+## The ask
+
+[Prompt 01](prompts/01-the-ask.md) asked for four things: a category picker, limited to Things To
+Do; a city picker, the top 50 cities; a page listing the top 20 Groupon deals in the chosen city
+and category, sortable by the amount saved and by the percent saved; and, for the price, only the
+original price and the fully final price after the discount.
+
+## What it does
+
+`/top-deals`: a category picker (Groupon's 38 top categories, tagged by a daily walk of the API
+with the `category1` filter, things-to-do first, at 00:30 UTC), a second picker with the leaf
+labels inside the chosen category, a city picker with the 50 cities that hold the most listable
+products (refreshed daily at 00:30 UTC), the 20 deals with the largest discount in the chosen city
+and category, sortable by amount saved and by percent saved. Each row shows the original price
+struck through and the price the shopper pays; the promo code, where one exists, is a footnote
+sentence, never a column and never the price. The JSON twin is `/data/top-deals.json`. The page is
+public and tells crawlers to stay out.
+
+Catalogue on 2026-09-30 at 20:10 UTC (from the D1 database behind the page): 55,822 listable products;
+153,949 sellable options on them; 149,453 of those have an original price above the retail price;
+543 distinct leaf labels. The first category walk tagged 8,803 listable products as Things To Do. Top
+cities by listable products (`top_cities`, refreshed 19:44 UTC): New York, NY 1,599; Los Angeles, CA
+1,150; Houston, TX 1,131; Las Vegas, NV 1,029; Miami, FL 889; Chicago, IL 809; rank 50 has 172.
+
+## Where it lives
+
+`https://zorasocial.asajj.cz/top-deals`. In the repo: `src/top-deals/`, `src/sync/category.ts`,
+`src/ui/pages/top-deals.tsx`, `migrations/0009_top_deals.sql`. The JSON twin is
+`/data/top-deals.json`.
+
+## How success is measured
+
+The acceptance list in `docs/ops/loop4.md`, checked by `bin/walkthrough`: 18 checks passed, 0 missed,
+in rounds 3 and 4 (two clean rounds in a row, 2026-09-30 20:12 and 20:13 UTC; rounds 1 and 2 each
+found one phone-width miss, fixed the same hour). Then a CEO-style review by a second model on the
+public snapshot, scored in stars, pass at 4 of 5 with no lens below 3; the score and the round count
+are written here when the review is in (see `docs/ops/loop4.md`, "CEO review").
+
+## How long
+
+4 hours 29 minutes from the brief commit (15:44 UTC) to the second clean round (20:13 UTC), and
+5 hours 58 minutes from the moment the ask was pasted into the coding session (14:15 UTC) to that
+round; the page was live at 20:06 UTC. Timestamps from `git log` and `docs/ops/loop4.md`. Inside that:
+about 35 minutes for the five parallel lanes, 13 minutes for the two page lanes, and the rest the
+integrator's own work, the design passes and waiting for the builder's answers.
+
+## What it cost
+
+The Claude Max subscription (Claude Code and Claude Design), no per-run bill for this feature.
+Cloudflare Workers Paid, $5 a month, the hosting under everything in the lab. Two earlier one-off
+list-price runs on this lab, unrelated to this feature: $0.12 for logo drafts and $0.16 for an
+agent experiment. The second model's CEO-style review of this feature runs on a ChatGPT
+subscription, also no per-run bill.
+
+## The loop
+
+Plan, contracts and fakes first. One brief file per lane, committed to the repo before the agent
+that works it is spawned. Agents work in their own worktrees, each with three gates:
+`bun run typecheck`, `bun test`, `bun bin/lane-check.ts <lane>`. Merge, publish,
+`bin/walkthrough` (the acceptance script). Fix every miss through the lane that owns the file, then
+repeat, until two clean rounds in a row. Then a CEO-style review by a second model, scored in
+stars, looped until 4 of 5. Model rule: the cheapest model with at least 90% confidence per lane
+(haiku, sonnet or opus), one tier up after two failed gates.
+
+## What you need to do the same
+
+Claude Code on a Max plan. Claude Design. Bun and wrangler 4. A Cloudflare account on Workers Paid.
+A partner registration through `bin/register`, one call, never twice. The four Worker secrets by
+name: `GROUPON_PARTNER_API_KEY`, `ZAL_AGENT_TOKEN`, `ZAL_INGEST_TOKEN`, `ZAL_ADMIN_TOKEN`. One
+worktree per lane, made with `bin/lane-worktrees`. An acceptance script like `bin/walkthrough`. The
+habit of writing the brief as a file before an agent sees it.
+
+## Prompts, in order
+
+See [`prompts/README.md`](prompts/README.md) for the full list, in order, with when each one was
+given and where it lives.
+
+## Honesty notes
+
+The prompts are published without names and with the grammar tidied, kept to the same length and
+substance as what was actually said. Every number on the design canvas was sample data, tagged as
+such on the canvas itself. Every number in this file carries its source next to it. Two spots where
+the integrator fixed a lane's file directly instead of sending the miss back to the lane are named in
+`docs/ops/loop4.md` (a one-line stylesheet rule and a time format), for speed; the loop rule says the
+owning lane fixes its misses. The category walk of the first day was still running when the loop
+closed; the page showed Things To Do, the category the ask named, from its first minute.
+<!-- Module: docs/ai-builder/prompts/README.md · Tested: n/a -->
+# Prompts
+
+Every prompt that built the Top deals page, in order, as a file in the repo before an agent saw
+it. The lane briefs (05 to 10) were each given to their lane agent with the same spawn line, quoted
+once here instead of on every row:
+
+> Your complete brief is the file docs/lanes/<lane>.md in your worktree <path>. Read it first with
+> cat, then do exactly what it says. Work only inside that directory and run every command from it
+> (cd there first; it is a git worktree on branch lane/<lane>). When you are done, answer with the
+> structured result: lane, commits (subjects), gates (green or red), changesFile, requests (paths of
+> any requests file you wrote), notes (under 120 words).
+
+| # | When (UTC) | From, to | Prompt | Lives at | Cleaned |
+|---|---|---|---|---|---|
+| 01 | 2026-09-30 13:50 | CEO, builder | the ask | `prompts/01-the-ask.md` | names removed, grammar tidied |
+| 02 | 2026-09-30 14:15 and 15:05 | builder, coding session | the instruction | `prompts/02-the-instruction.md` | names removed, grammar tidied |
+| 03 | not yet written | coding session, builder | the plan | `prompts/03-plan.md` (added at the end) | none |
+| 04 | 2026-09-30 | coding session, Claude Design | the design prompt | `prompts/04-design-prompt.md` | none |
+| 05 | 2026-09-30 15:36 | integrator, lane agent | lane brief: sync-category | `docs/lanes/sync-category.md` | none |
+| 06 | 2026-09-30 15:37 | integrator, lane agent | lane brief: top-deals | `docs/lanes/top-deals.md` | none |
+| 07 | 2026-09-30 15:37 | integrator, lane agent | lane brief: ui-components-top-deals | `docs/lanes/ui-components-top-deals.md` | none |
+| 08 | 2026-09-30 15:43 | integrator, lane agent | lane brief: ui-top-deals | `docs/lanes/ui-top-deals.md` | none |
+| 09 | 2026-09-30 15:43 | integrator, lane agent | lane brief: docs-showcase | `docs/lanes/docs-showcase.md` | none |
+| 10 | 2026-09-30 15:44 | integrator, lane agent | lane brief: export-public (the snapshot exporter) | private repository only: the brief lists the private strings the exporter removes, so it cannot ship; what it built is described in `CHANGELOG.md` | withheld, reason stated |
+| 11 | not yet written | integrator, lane agents | the acceptance list | `prompts/05-acceptance.md` (added at the end) | none |
+| 12 | not yet written | integrator, second model (GPT, codex CLI) | the CEO review prompt | `prompts/12-ceo-review-prompt.md` (added at the end) | none |
+
+Rows 03, 11 and 12 name the prompt files this loop still needs; they are added once the plan is
+approved, the acceptance list is written and the CEO review runs.
+<!-- Module: docs/ops/loop4.md · Tested: n/a -->
+# Loop 4: the Top deals page (from 2026-09-30)
+
+The CEO asked for a page that shows the top 20 Groupon deals in a chosen city and category, sortable
+by the amount saved and by the percent saved, with only the original price and the final price
+shown, presented as an example AI Builder project. Rule as in loop 3: every page shows today's
+numbers or says, with a time, when they arrive. Each round: run the data jobs, run `bin/walkthrough`,
+look at the page at 1280 and 390 px, fix every miss through the owning lane, publish. The loop ends
+after two clean rounds in a row; then the CEO review by a second model, looped until 4 of 5 stars
+with no lens below 3.
+
+## What working means
+
+| Surface | Working means |
+|---|---|
+| `/top-deals` | Opens with real deals for Things To Do in the city with the most listable products, sorted by amount, 20 ranked rows. The category picker lists Groupon's top categories tagged by the daily walk, things-to-do first, then the leaf labels inside the chosen one; the city picker lists the 50 cities with the most listable products as "City, ST". A chosen pair shows 20 deals (the top three as cards, the rest as ranked rows) or a heading that says "All N"; each deal shows the original price struck through, the price to pay, the saving in money and in percent, and a link to the deal; four tiles sum the list up (biggest saving, typical saving, saved across the top 20, promo codes); "By percent saved" puts the largest percent first; the promo code and promo price appear only in the footnotes, never in a price cell; a city outside the list answers a sentence with a next step, not a 500; before the first category walk the page names when it runs; the page fits 390 px (document scroll width at or under 390). Public, noindex. |
+| `category-walk` job | One Workflow instance, 38 `category1` values, things-to-do first, one request per second; one `sync_runs` row per category with counts; a failed category is recorded and skipped, never retried in the same cycle; a walk never writes a product row or moves the watermark. |
+| `top-cities` job | 50 rows in `top_cities`, New York, NY first, keyed by city and state, replaced in one write; an empty catalogue keeps yesterday's list. |
+
+`bin/walkthrough [host] [--no-carts]` checks the page lines above. It prints every miss and exits
+1 on any miss.
+
+## Round 1, 2026-09-30 20:06 to 20:09 UTC
+
+Published 20:06 UTC (Worker version ab5e73a5). Data jobs run by hand at 19:44 UTC: `top-cities` (50 rows,
+New York, NY first with 1,599 listable products), `category-walk` (things-to-do complete at 19:50 UTC with
+8,816 products tagged; 15 of 38 categories complete by 20:05 UTC, 49,110 products tagged so far).
+
+Walkthrough: 18 passed, 0 missed (the six top deals checks among them).
+
+Screenshots `docs/ops/loop4/top-deals-desktop.png` (1280 × 3542) and `top-deals-phone.png` (390). Document
+scroll width at 390 px: 430 on `/top-deals` (miss), 390 on the label empty state.
+
+| # | Miss | Cause | Fix | Who |
+|---|---|---|---|---|
+| 1 | The phone page scrolls sideways (430 px) | The stat tiles keep five columns at 390 px: the `.tiles:has(.tile--lead)` rule outranks the phone rule for `.tiles--panel` | The phone block names both selectors | integrator (one line in `public/static/app.css`) |
+| 2 | The freshness line prints the raw stamp `2026-09-30T20:05:35.228Z` | The page escaped `taggedAt` as stored | `utcText`: `2026-09-30 20:05 UTC` | integrator (in `src/ui/pages/top-deals.tsx`) |
+| 3 | Twenty promo footnotes as one long column on desktop (polish, not a miss) | Nineteen of twenty New York deals carry a promo code, as the catalogue does | Two columns above 900 px | integrator (`public/static/app.css`) |
+
+## Round 2, 2026-09-30 20:10 to 20:11 UTC
+
+Published 20:10 UTC with the three round 1 fixes. Walkthrough: 18 passed, 0 missed. Scroll width at 390 px:
+397 on `/top-deals` (miss), 390 on the label empty state.
+
+| # | Miss | Cause | Fix | Who |
+|---|---|---|---|---|
+| 1 | The phone page is 7 px too wide | The tile figure `$6,838.73` at 34 px does not fit a half-width tile, and a long title word plus the promo marker's negative margin push one ranked row 4 px out | Phone tile figures at 24 px (the lead at 30 px), `overflow-wrap:anywhere` on titles, no negative right margin on the marker | integrator (`public/static/app.css`) |
+
+## Round 3, 2026-09-30 20:12 UTC
+
+Published 20:12 UTC. Walkthrough: 18 passed, 0 missed (`docs/ops/loop4/walkthrough-round-4.txt` holds the
+identical round 4 output). Scroll width at 390 px: 390 on `/top-deals` and on the label empty state; 1280 on
+the desktop pages, by amount and by percent. Screenshots refreshed. Clean.
+
+## Round 4, 2026-09-30 20:13 UTC
+
+Same deploy, run again: walkthrough 18 passed, 0 missed; 390 and 1280 px; 20 deals on every ranked page.
+Clean. Second clean round in a row.
+
+## Loop status
+
+Closed on 2026-09-30 20:13 UTC after two clean rounds in a row (rounds 3 and 4). Times from the commit
+log: the ask reached the coding session at 14:15 UTC, the briefs were committed at 15:44 UTC, the backend
+went live at 19:43 UTC, the page at 20:06 UTC, the loop closed at 20:13 UTC: 4 h 29 min from the briefs to
+the second clean round, 5 h 58 min from the ask. Next: the public snapshot and the CEO review by a second model.
+
+## Open after loop 4
+
+- The category walk of 2026-09-30 was still running when the loop closed (things-to-do complete at
+  19:50 UTC; 15 of 38 categories by 20:05 UTC); the other categories fill in as it finishes and the
+  cron repeats it daily at 00:30 UTC.
+- Rotating `ZAL_AGENT_TOKEN` before the public push (open since loop 3).
+
+exec
+/usr/bin/bash -lc 'cat AGENTS.md review/walkthrough.txt package.json docs/ops/runs/top-deals.md docs/ops/runs/ui-top-deals.md' in <the snapshot directory>
+ succeeded in 0ms:
+# Zora Agent Lab (zorasocial)
+
+Four products on the Groupon Partner Storefront API, live at `https://zorasocial.asajj.cz`:
+
+1. **Price truth monitor**: measures the gap between the price shown and the price paid.
+2. **Partner experience daily probe**: runs the partner flow against production every day and keeps a scorecard.
+3. **Agent shopping tool**: a request in plain words returns deals and one checkout link (HTTP, MCP, CLI).
+4. **Top deals**: pick a category and a city, see the 20 deals with the largest discount, by amount or by percent (the AI Builder showcase).
+
+Owner: Robert Vojacek. Plan: `docs/plan.md`. API reference: `docs/reference/partner-guide-v7.txt` and
+`docs/reference/partner-openapi-v003.json`. Read the part of the guide that covers your lane before you write code.
+
+## Stack
+
+Cloudflare Worker (`src/index.ts`) with Hono, D1 (plain SQL, no ORM), Workflows and Cron. Bun for tests,
+scripts and the zora collector. TypeScript strict. No LLM runs inside the Worker.
+
+## How the repo is divided
+
+Work is split into **lanes**. `lanes.json` says which files each lane owns.
+
+- You work on branch `lane/<your-lane>` in your own worktree. Never on `main`.
+- You change **only the files your lane owns**. `bun bin/lane-check.ts <lane>` fails otherwise.
+- Shared files belong to the integrator: `package.json`, `wrangler.jsonc`, `lanes.json`, `AGENTS.md`,
+  `migrations/`, `src/contracts/`, `src/lib/`, `src/app.ts`, `src/index.ts`, `src/cron.ts`,
+  `src/container.ts`, `src/return/`, `src/ui/routes.ts`, `src/probe/checks/index.ts`,
+  `test/fakes/`, `test/contracts/`, `test/app/`, `CHANGELOG.md`, `docs/ops/llm-manual-runs.md`.
+- Need a change in a shared file, a new dependency, or a contract change? Write it in
+  `requests/<lane>.md` (what, why, the exact change) and keep building against what exists.
+  Do not edit the shared file. Do not add packages.
+- Your changelog lines go in `changes/<lane>.md`. The integrator folds them into `CHANGELOG.md`.
+
+## Contracts
+
+`src/contracts/` is frozen. Lanes talk to each other only through the interfaces in
+`src/contracts/ports.ts`. Each lane keeps the export names and signatures of its stub file, because
+`src/container.ts`, `src/cron.ts` and `src/app.ts` import them by name.
+
+Build and test against the fakes in `test/fakes/` (`makeWorld()` in `test/fakes/env.ts` wires them).
+No test may call the network or need an API key.
+
+## Rules that are never broken
+
+1. **Money is an integer in minor units.** Format only with `formatMoney` from `src/lib/money.ts`.
+2. **The price a shopper pays is `retail`.** A promo price is reported separately, with its code and the
+   sentence that the shopper must type it at checkout. Never show the promo price as the price.
+3. **`buyLink` is used verbatim** from the latest cart response. Never build a checkout address.
+4. **Errors are read from the body**, `body.error ?? body.details?.error ?? body.code`, never from the
+   HTTP status. Products, Supplier, Booking and partners/me answer every error as HTTP 400.
+5. **Retry only** `INTERNAL_SERVER_ERROR`, network errors, HTTP 429 and 5xx: 2, 4, 8 s, at most 5 tries.
+   **Never retry adding cart items.** Never call `POST /register` from code in `src/`.
+6. **One request per second** to the partner API. Every cart the probe or the monitor creates is abandoned.
+7. **Secrets** are Worker secrets. Never write a key, token or PIN into a file, a log line, a test, a
+   commit or an error message. Test values live in `test/fakes/env.ts`.
+8. **Time** comes from `Clock` (`deps.clock`). No `Date.now()` and no `setTimeout` in lane code.
+9. **Expected failures are values** (`Result`, outcome unions). Throw only on programmer error.
+   Never swallow an error: return it, or log it with `console.error(JSON.stringify({...}))` and return it.
+10. **Every value that reaches HTML is escaped.** Every SQL value is bound with `?1`, never concatenated.
+
+## Working loop (TDD)
+
+RED: write the failing test first. GREEN: the smallest code that passes. REFACTOR 1: check against the
+contract and the guide. REFACTOR 2: check against this file and `rules/`. Commit after each passing group:
+`<lane>: <outcome>`. Do not push. Do not merge.
+
+Gates before you hand in, all three green:
+
+```
+bun run typecheck
+bun test
+bun bin/lane-check.ts <lane>
+```
+
+## File headers
+
+Every file you create or change starts with this header (block comment of the language):
+
+```
+<One-line summary of what this module does.>
+
+Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+Module:  <path from the repo root>
+Deps:    <key dependencies>
+Tested:  <path of the test file, or "n/a">
+```
+
+## Writing
+
+Plain words, short sentences, no dashes as punctuation in user-facing text. Comments say why, not what.
+Test names read as facts: `it("answers PRICE_MISMATCH with the current price")`.
+ok    robots.txt disallows everything and every answer carries noindex
+ok    the finder has nothing for a password manager to save
+ok    the finder opens with today's picks, never an empty page
+ok    GET /api/v1/search "massage in Chicago" returns at least 3 deals with the price rule
+ok    the finder page for "massage in Chicago" shows cards with price, promo sentence, city and state
+ok    the deal page shows options with prices, locations, terms, price history and a checkout button per option
+ok    GET /api/v1/deals/:id answers the same deal
+skip  web checkout and API checkout (--no-carts)
+ok    the return page waits and polls for an order Groupon does not know yet
+ok    GET /api/v1/orders/:uuid answers not_found for an unknown order
+ok    the price truth page has today's numbers in all four sections
+ok    the scorecard shows today's run with age, pass rate, failing steps, latency and findings
+ok    the top deals page opens with 20 real deals for the default pair, never empty
+ok    a chosen city and category (New York, NY, beauty-and-spas) returns 20 ranked deals or says why fewer
+ok    sort by percent puts the largest percent first, sort by amount the largest amount
+ok    every deal shows the original above the price to pay; the promo price is only in the footnotes
+ok    a city outside the list answers a sentence, not a 500
+ok    the Top deals link is in the nav of every page
+ok    MCP tools/list and tools/call search_deals answer
+
+18 passed, 0 missed
+{
+  "name": "zorasocial",
+  "private": true,
+  "type": "module",
+  "description": "Zora Agent Lab: price truth monitor, partner experience probe and agent shopping tool on the Groupon Partner Storefront API",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json",
+    "gates": "bun run typecheck && bun test",
+    "gen:contracts": "openapi-typescript docs/reference/partner-openapi-v003.json -o src/contracts/partner.gen.ts",
+    "db:init": "wrangler d1 migrations apply zorasocial --local",
+    "db:init:remote": "wrangler d1 migrations apply zorasocial --remote"
+  },
+  "dependencies": {
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250920.0",
+    "bun-types": "^1.3.14",
+    "openapi-typescript": "^7.4.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.0.0"
+  }
+}
+| When (UTC) | What | Lane | Model | Billed cost |
+|---|---|---|---|---|
+| 2026-09-30 15:53 | Built the top cities job and the top deals read model (pickers, 20 ranked rows per city/category, sort by amount or percent saved) with full test coverage and a query-plan guard | top-deals | Claude Sonnet 5 via Claude Code subagent | subscription, no per-run bill |
+| When (UTC) | What | Lane | Model | Billed cost |
+|---|---|---|---|---|
+| 2026-09-30 20:01 | Built the Top deals page renderer (picker, podium, tiles, ranked table, footnotes) and its test suite | ui-top-deals | Claude Sonnet 5 via Claude Code subagent | subscription, no per-run bill |
+
+exec
+/usr/bin/bash -lc "rg --files docs/ai-builder docs/ops/loop4 src/top-deals test/top-deals requests changes | sort && git status --short && git log -12 --format='%h %aI %s'" in <the snapshot directory>
+ succeeded in 0ms:
+changes/docs-showcase.md
+changes/export-public.md
+changes/monitor.md
+changes/probe-checks-c.md
+changes/search.md
+changes/sync-category.md
+changes/top-deals.md
+changes/ui-checkout.md
+changes/ui-components.md
+changes/ui-deal.md
+changes/ui-finder.md
+changes/ui-login.md
+changes/ui-price-truth.md
+changes/ui-return.md
+changes/ui-scorecard.md
+changes/ui-top-deals.md
+docs/ai-builder/README.md
+docs/ai-builder/prompts/01-the-ask.md
+docs/ai-builder/prompts/02-the-instruction.md
+docs/ai-builder/prompts/04-design-prompt.md
+docs/ai-builder/prompts/12-ceo-review-prompt.md
+docs/ai-builder/prompts/README.md
+docs/ops/loop4/top-deals-desktop.png
+docs/ops/loop4/top-deals-phone.png
+docs/ops/loop4/walkthrough-round-4.txt
+requests/search.md
+requests/ui-checkout.md
+requests/ui-return.md
+src/top-deals/cities.ts
+src/top-deals/index.ts
+src/top-deals/read-model.ts
+test/top-deals/cities.test.ts
+test/top-deals/query-plan.test.ts
+test/top-deals/read-model.test.ts
+?? review/
+f1e42e3 2026-09-30T22:15:35+02:00 Zora Agent Lab: public snapshot 2026-09-30
+002b577 2026-09-30T22:14:34+02:00 Zora Agent Lab: public snapshot 2026-09-30
+
+exec
+/usr/bin/bash -lc "sed -n '1,240p' bin/walkthrough && rg --files docs/ops | sort && command -v bun && test -d node_modules && git remote -v" in <the snapshot directory>
+ succeeded in 0ms:
+#!/usr/bin/env bash
+# Runs the acceptance walkthrough against a live host: bun bin/walkthrough.ts.
+#
+# Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+# Module:  bin/walkthrough
+# Deps:    bun, bin/walkthrough.ts
+# Tested:  n/a
+
+exec bun "$(dirname "$0")/walkthrough.ts" "$@"
+docs/ops/llm-manual-runs.md
+docs/ops/loop0.md
+docs/ops/loop1.md
+docs/ops/loop3.md
+docs/ops/loop3/checkout-desktop.png
+docs/ops/loop3/checkout-phone.png
+docs/ops/loop3/deal-desktop.png
+docs/ops/loop3/deal-phone.png
+docs/ops/loop3/finder-desktop.png
+docs/ops/loop3/finder-phone.png
+docs/ops/loop3/finder-search-desktop.png
+docs/ops/loop3/finder-search-phone.png
+docs/ops/loop3/login-desktop.png
+docs/ops/loop3/login-phone.png
+docs/ops/loop3/price-truth-desktop.png
+docs/ops/loop3/price-truth-phone.png
+docs/ops/loop3/return-waiting-desktop.png
+docs/ops/loop3/return-waiting-phone.png
+docs/ops/loop3/scorecard-desktop.png
+docs/ops/loop3/scorecard-phone.png
+docs/ops/loop4.md
+docs/ops/loop4/top-deals-desktop.png
+docs/ops/loop4/top-deals-phone.png
+docs/ops/loop4/walkthrough-round-4.txt
+docs/ops/requests-wave1.md
+docs/ops/runs/docs-showcase.md
+docs/ops/runs/export-public.md
+docs/ops/runs/probe-checks-c.md
+docs/ops/runs/search.md
+docs/ops/runs/sync-category.md
+docs/ops/runs/top-deals.md
+docs/ops/runs/ui-components.md
+docs/ops/runs/ui-top-deals.md
+/usr/bin/bun
+
+exec
+/usr/bin/bash -lc "rg -n 'Robert|Owner|owner|CEO review|stars|TODO|pending|not yet|public.*(repo|git)|github.com|55,859|55,822|153,949|149,453|543|90%' README.md docs/ai-builder docs/ops/loop4.md docs/ops/runs docs/ops/llm-manual-runs.md CHANGELOG.md docs/lanes/docs-showcase.md && cat wrangler.jsonc docs/reference/README.md changes/docs-showcase.md changes/export-public.md" in <the snapshot directory>
+ succeeded in 0ms:
+docs/lanes/docs-showcase.md:12:- Catalogue on 2026-09-30: 55,859 listable products; 154,037 sellable options on listable products; 149,539 of them have an original price above the retail price; 144,773 carry a promo; 543 distinct leaf labels. Top cities by listable products: New York NY 1,603, Los Angeles 1,152, Houston 1,132, Las Vegas 1,029, Miami 892, Chicago 809; rank 50 has about 170.
+docs/lanes/docs-showcase.md:17:- The loop: plan, contracts and fakes first, one brief file per lane committed before the agent is spawned, agents in worktrees with three gates (`bun run typecheck`, `bun test`, `bun bin/lane-check.ts <lane>`), merge, publish, `bin/walkthrough` (the acceptance script), fix every miss through the owning lane, repeat until two clean rounds in a row, then a CEO-style review by a second model scored in stars, looped until 4 of 5. Model rule: the cheapest model with at least 90 % confidence per lane (haiku, sonnet, opus), one tier up after two failed gates.
+docs/lanes/docs-showcase.md:18:- Models used on this feature: the integrator session Claude Fable 5.1; lane sync-category Claude Opus; lanes top-deals, ui-components, ui-top-deals, docs-showcase (you), export-public Claude Sonnet; the design boards Claude Design; the CEO review GPT through the codex CLI.
+docs/lanes/docs-showcase.md:23:1. **`docs/ai-builder/README.md`** (header line `<!-- Module: docs/ai-builder/README.md · Tested: n/a -->`), for a non-engineer builder, in this order, plain words, short sentences, no dashes as punctuation: `# How the Top deals page was built with AI` (two sentences: what the lab is; this folder shows one feature end to end with its prompts); `## Who it is for` (a CEO who wants to show what one builder and a coding agent can ship in a day; a builder who wants to do the same); `## The ask` (the four points of prompt 01, linked); `## What it does` (the page, in the ask's own terms, with the catalogue facts); `## Where it lives` (the URL; the repo paths `src/top-deals/`, `src/sync/category.ts`, `src/ui/pages/top-deals.tsx`, `migrations/0009_top_deals.sql`; the JSON twin); `## How success is measured` (the acceptance list in `docs/ops/loop4.md` checked by `bin/walkthrough`, two clean rounds; the CEO review by a second model, pass at 4 of 5 stars with no lens below 3; the result `<fill>`); `## How long` (`<fill>` hours from the brief commit to the second clean round; the timestamps come from `git log` and `docs/ops/loop4.md`); `## What it cost`; `## The loop` (as in the facts, with the prompt-capture rule: every prompt is a file in the repo before an agent sees it); `## What you need to do the same` (Claude Code on a Max plan; Claude Design; bun and wrangler 4; a Cloudflare account on Workers Paid; a partner registration through `bin/register`, one call, never twice; the four Worker secrets by name; one worktree per lane with `bin/lane-worktrees`; an acceptance script like `bin/walkthrough`; the habit of writing the brief as a file first); `## Prompts, in order` (pointer to `prompts/README.md`); `## Honesty notes` (the prompts are published without names and with the grammar tidied, same length and substance; every number on the design canvas was sample data; the numbers in this file have a source named next to them; what `<fill>` means until it is filled).
+docs/lanes/docs-showcase.md:24:2. **`docs/ai-builder/prompts/README.md`**: one paragraph on what the folder is, then the table, header verbatim `| # | When (UTC) | From, to | Prompt | Lives at | Cleaned |`, rows: 01 the ask (CEO to builder, chat); 02 the instruction (builder to the coding session, two turns and the decisions); 03 the plan (coding session, approved by the builder; `03-plan.md`, added at the end); 04 the design prompt (coding session to Claude Design); 05 to 10 the six lane briefs (integrator to lane agents, `docs/lanes/sync-category.md`, `top-deals.md`, `ui-components-top-deals.md`, `ui-top-deals.md`, `docs-showcase.md`, `export-public.md`; the spawn line, quoted once above the table: "Your complete brief is the file docs/lanes/<lane>.md in your worktree <path>. Read it first with cat, then do exactly what it says."); 11 the acceptance list (`05-acceptance.md`, added at the end); 12 the CEO review prompt (`12-ceo-review-prompt.md`, added at the end). The "Cleaned" cell says "names removed, grammar tidied" or "none". Times from the header lines of the files.
+docs/lanes/docs-showcase.md:25:3. **`docs/reference/README.md`** (6 to 8 lines): `partner-guide-v7.txt` is a text capture of the public hub page `https://www.groupon.com/hubs/partner-storefront-api` (version 7), `partner-openapi-v003.json` is the OpenAPI document served at `https://api.enc.groupon.com/octo-gateway/v1/openapi.json` (version 003), both fetched on 2026-09-29, both written by Groupon and owned by Groupon; kept in the repo because the tests and the contract generator read them.
+docs/lanes/docs-showcase.md:27:5. **`README.md`**: "Four products" and the fourth bullet `4. **Top deals**. Pick a category and a city, see the 20 deals with the largest discount, by amount or by percent, with the original price and the price to pay.`; replace the stale `## What is live and what waits` with `## What is live` (the partner is registered; the full catalogue is loaded, 55,859 listable products; every page is designed and public, told to crawlers to stay out; the daily probe, the price truth monitor, the agent API, MCP and CLI, the Top deals page); after `## Gates` a new `## Run it yourself` (`bun install`; `npx wrangler login`; `npx wrangler d1 create zorasocial` and paste the id into `wrangler.jsonc` over `PENDING_CREATE`; `bun run db:init`; a `.dev.vars` file, gitignored, with `GROUPON_PARTNER_API_KEY`, `ZAL_AGENT_TOKEN`, `ZAL_INGEST_TOKEN`, `ZAL_ADMIN_TOKEN` (any 16 or more character value for the three tokens; the partner key comes from `bin/register` after changing the contact name and email in it); `bun run dev`; `bin/publish` for production with the four secrets set by `wrangler secret put`); in `## Publish` replace the two sentences about the OAuth login and the vault with "It deploys with the wrangler OAuth login, unsetting `CLOUDFLARE_API_TOKEN` first, because the deploy needs the D1 scope an API token may lack." and add `/top-deals` to the smoke list; `zal job` usage gains `category-walk` and `top-cities`; a new `## Built with AI` before `## Design` (two sentences and the link `docs/ai-builder/README.md`; `bin/export-public` makes the public snapshot); keep everything else. Under 150 lines.
+docs/lanes/docs-showcase.md:29:7. Names: no person's name anywhere in what you write except the owner line that already exists; the CEO is "the CEO", colleagues are roles. No path outside the repo, no private links.
+CHANGELOG.md:4:versioning: [SemVer](https://semver.org/). Agents maintain `[Unreleased]`; only Robert bumps versions and tags.
+CHANGELOG.md:38:- **Finder and login, from Robert's first visit (2026-09-29).** With an empty catalogue the finder says that no deals are loaded yet and why, instead of "No deals found", and does not search. The PIN field is a text field drawn as dots and, like the search field, is marked for password managers to leave alone, so none offers to save a login.
+CHANGELOG.md:77:  ownership in `lanes.json` enforced by `bin/lane-check.ts`.
+docs/ops/loop4.md:9:after two clean rounds in a row; then the CEO review by a second model, looped until 4 of 5 stars
+docs/ops/loop4.md:65:the second clean round, 5 h 58 min from the ask. Next: the public snapshot and the CEO review by a second model.
+docs/ops/llm-manual-runs.md:10:| 2026-09-29 21:05 | Three logo drafts for "Zora Agent Lab" (1:1, fast model), draft 1 cropped into `public/logo.png` | integrator | gemini-2.5-flash-image via pig | 3 images, about $0.12 at list price (not yet on an invoice) |
+README.md:13:The partner is registered; the full catalogue is loaded, 55,859 listable products. Every page is
+README.md:49:In order: aborts if `wrangler.jsonc` still holds a pending D1 database id, runs `bun run typecheck`
+README.md:131:loop that ran them, are in `docs/ai-builder/README.md`. This public repository is a snapshot made
+README.md:138:holds a copy of the canvas files, refreshed after the owner edits the canvas and before a UI lane
+docs/ai-builder/README.md:31:Catalogue on 2026-09-30 at 20:10 UTC (from the D1 database behind the page): 55,822 listable products;
+docs/ai-builder/README.md:32:153,949 sellable options on them; 149,453 of those have an original price above the retail price;
+docs/ai-builder/README.md:33:543 distinct leaf labels. The first category walk tagged 8,803 listable products as Things To Do. Top
+docs/ai-builder/README.md:48:public snapshot, scored in stars, pass at 4 of 5 with no lens below 3; the score and the round count
+docs/ai-builder/README.md:49:are written here when the review is in (see `docs/ops/loop4.md`, "CEO review").
+docs/ai-builder/README.md:74:stars, looped until 4 of 5. Model rule: the cheapest model with at least 90% confidence per lane
+docs/ai-builder/prompts/README.md:18:| 03 | not yet written | coding session, builder | the plan | `prompts/03-plan.md` (added at the end) | none |
+docs/ai-builder/prompts/README.md:25:| 10 | 2026-09-30 15:44 | integrator, lane agent | lane brief: export-public (the snapshot exporter) | private repository only: the brief lists the private strings the exporter removes, so it cannot ship; what it built is described in `CHANGELOG.md` | withheld, reason stated |
+docs/ai-builder/prompts/README.md:26:| 11 | not yet written | integrator, lane agents | the acceptance list | `prompts/05-acceptance.md` (added at the end) | none |
+docs/ai-builder/prompts/README.md:27:| 12 | not yet written | integrator, second model (GPT, codex CLI) | the CEO review prompt | `prompts/12-ceo-review-prompt.md` (added at the end) | none |
+docs/ai-builder/prompts/README.md:30:approved, the acceptance list is written and the CEO review runs.
+docs/ai-builder/prompts/12-ceo-review-prompt.md:2:# Prompt 12: the CEO review, by a second model
+docs/ai-builder/prompts/12-ceo-review-prompt.md:15:> Your working directory is the public repository of what was built. Start with `README.md`,
+docs/ai-builder/prompts/12-ceo-review-prompt.md:28:> - Extreme ownership: is there an owner, are the open items and honesty notes stated, are the next steps
+docs/ai-builder/prompts/12-ceo-review-prompt.md:32:> would need to know that this does not tell you; overall stars 1 to 5; a two-sentence narrative; the three
+docs/ai-builder/prompts/12-ceo-review-prompt.md:36:> score and citation), reject_reason, unevidenced, missing, stars, narrative, top_changes (an array of three
+docs/ai-builder/prompts/02-the-instruction.md:18:> 4 of 5 star CEO review, and loop it against that.
+docs/ai-builder/prompts/02-the-instruction.md:24:- Git: a public GitHub repo snapshot, prepared by the session, pushed by the builder. Nothing leaves the
+{
+  // Zora Agent Lab at zorasocial.asajj.cz. The Worker runs first on every request so the token
+  // gates and the noindex header sit in front of the static assets too. Integrator-owned.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "zorasocial",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "minify": true,
+  "upload_source_maps": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "routes": [{ "pattern": "zorasocial.asajj.cz", "custom_domain": true }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zorasocial",
+      "database_id": "PENDING_CREATE",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "workflows": [
+    { "name": "zorasocial-catalogue-sync", "binding": "SYNC_WORKFLOW", "class_name": "CatalogueSyncWorkflow" }
+  ],
+  "triggers": {
+    // Keep in step with SCHEDULE in src/cron.ts (test/app/cron.test.ts compares the two).
+    "crons": ["0 */3 * * *", "0 4 * * *", "30 4 * * *", "15 * * * *", "0 5 * * 1", "30 0 * * *"]
+  },
+  "vars": {
+    "PARTNER_BASE_URL": "https://api.enc.groupon.com",
+    "PARTNER_USER_AGENT": "ZoraAgentLab/1.0 (+https://zorasocial.asajj.cz; partner-contact@example.com)",
+    "PARTNER_MIN_INTERVAL_MS": "1000",
+    "SYNC_PAGE_SIZE": "50",
+    "CART_SAMPLE_SIZE": "20"
+  },
+  // Secrets, set with `wrangler secret put`, never written here:
+  //   GROUPON_PARTNER_API_KEY  ZAL_AGENT_TOKEN  ZAL_INGEST_TOKEN  ZAL_ADMIN_TOKEN
+  "observability": { "enabled": true }
+}
+<!-- Module: docs/reference/README.md · Tested: n/a -->
+# Reference material
+
+`partner-guide-v7.txt` is a text capture of the public hub page
+`https://www.groupon.com/hubs/partner-storefront-api` (version 7). `partner-openapi-v003.json` is
+the OpenAPI document served at `https://api.enc.groupon.com/octo-gateway/v1/openapi.json` (version
+003). Both were fetched on 2026-09-29. Both are written by Groupon and owned by Groupon, not by
+this project. They stay in the repo because the tests and the contract generator read them
+directly.
+<!-- Module: changes/docs-showcase.md -->
+# docs-showcase lane changes
+
+### Added (2026-09-30)
+
+- **The AI Builder story.** `docs/ai-builder/README.md` tells the Top deals page's build end to
+  end for a CEO or a builder: the ask, what the page does, where it lives, how success is
+  measured, how long it took and what it cost, the loop that built it, and what you need to do the
+  same. `docs/ai-builder/prompts/README.md` indexes every prompt that built it, in order, with when
+  it was given, who wrote it, where it lives and whether it was cleaned of names. Numbers that do
+  not exist yet (the CEO review score, the hours from brief to second clean round) are written as
+  `<fill>`.
+- **`docs/reference/README.md`**: names the source, the version and the fetch date of the two
+  Groupon reference files kept in the repo.
+- **`LICENSE`**: MIT, copyright Groupon, Inc.
+
+### Changed (2026-09-30)
+
+- **`README.md`**: four products instead of three, with the Top deals bullet. `## What is live and
+  what waits` becomes `## What is live` (the partner is registered, the catalogue is loaded, every
+  page is designed and public). New `## Run it yourself` (install, wrangler login and d1 create,
+  `.dev.vars`, `bun run dev`). `## Publish` names `/top-deals` in the smoke list and states the
+  OAuth deploy reason without a person's email. `zal job` usage gains `category-walk` and
+  `top-cities`. New `## Built with AI` pointing at the AI Builder story. Under 150 lines.
+- **`docs/architecture.md`**: the scheduled jobs table gains `top-cities` and `category-walk`
+  (both `30 0 * * *`); the D1 tables table gains `product_categories` and `top_cities`; "seven
+  migration files, 0001 through 0007" becomes nine, 0001 through 0009; the system diagram's admin
+  edge names `admin/jobs/category-walk` too, and the dangling `pingate --> services` line (no
+  `pingate` node was ever defined) is dropped.
+<!--
+Changelog lines for lane export-public, folded into CHANGELOG.md by the integrator.
+
+Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+Module:  changes/export-public.md
+Deps:    n/a
+Tested:  n/a
+-->
+
+### Added
+
+- **`bin/export-public [dir] [--no-gates]` (2026-09-30).** Turns `HEAD` of this repo into a public snapshot directory with one commit: archives `HEAD` (tracked files only, executable bits kept), deletes `docs/ops/message-internal-tag.md`, rewrites 26 private strings to neutral phrases (the account id, the D1 database id to `PENDING_CREATE`, the owner's personal email and git identity, three colleagues' names, home and `~/code`/`~/OH` paths, an internal chat space id, a private Claude Design canvas link, internal memory-note and report-route names), then scans every remaining text file for 18 forbidden patterns (a real `grpn_` key shape, the same home paths and names) and refuses to commit if any rewrite matched nothing or any forbidden string survives. Unless `--no-gates`, it symlinks `node_modules` and runs `bun run typecheck && bun test` inside the snapshot before committing, so the exported tree is proven to build on its own. A refresh of an existing snapshot directory replaces its tree and always adds a new commit (`--allow-empty`), so a content-identical re-run still advances history. When the directory being archived is itself already a public-snapshot commit (its HEAD subject starts with "Zora Agent Lab: public snapshot "), a missing EXCLUDE path and a zero-hit rewrite rule are expected, not aborts; the forbidden scan still runs unconditionally. The commit author is `ZAL_PUBLIC_AUTHOR` when set, else the machine's git config (printed either way, so a private git identity landing in the public history is never silent). Added an extra rewrite, `the owner` → `the owner`, for `README.md:40` (not yet fixed at the source by other lanes as of this run; also covers `bin/publish` and `test/fakes/d1.ts` if either regains the string later). `bin/export-public.ts` and its own test file are exempt from both the rewrite pass and the forbidden scan (they legitimately hold the patterns, unmodified), as is this lane's own brief `docs/lanes/export-public.md`. 6 tests in `test/bin/export-public.test.ts`: `applyRewrites` covers every rule on fixture text, `forbiddenLines` keeps the all-zero test key while flagging a real key shape/home path/colleague name, and four integration tests spawn the real script against `mkdtempSync` targets (clean export, refresh adds a second commit, a non-empty non-snapshot target is refused, re-exporting an already-public directory's own HEAD does not abort).
+
+The exporter runs the snapshot's tests with `ZAL_EXPORT_GATES=1`; this file's own integration tests skip under that variable, so the first gated export into a fresh directory (no `.git` yet) passes its gates like every later refresh.
+
+exec
+/usr/bin/bash -lc "sed -n '1,150p' test/top-deals/read-model.test.ts && cat test/top-deals/query-plan.test.ts && rg -n 'fetch\\(|writeFile|mkdir|spawn|process.env|sqlite|Database|it\\(' test/top-deals test/ui/pages/top-deals.test.tsx test/sync/category.test.ts" in <the snapshot directory>
+ succeeded in 0ms:
+/**
+ * The top deals read model, checked against numbers computed by hand on the fixtures (Chicago,
+ * IL: laser 50000/9900 saves 40100 (80.2%), bowling 9000/3900 saves 5100 (56.7%), massage
+ * 90-minute 12000/6900 saves 5100 (42.5%) and its 60-minute option only 3100, oil 8999/4499
+ * saves 4500 (50.0%), pizza 5000/2900 saves 2100 (42.0%); sold out, kayak and car wash are not
+ * listable or not sellable) and against hand-built catalogues for every other rule.
+ *
+ * Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+ * Module:  test/top-deals/read-model.test.ts
+ * Deps:    bun:test, src/top-deals/read-model.ts, test/fakes/*
+ * Tested:  this file
+ */
+import { describe, expect, it } from "bun:test";
+import { createTopDealsReadModel } from "../../src/top-deals/read-model";
+import type { TestDb } from "../fakes/d1";
+import { createTestDb } from "../fakes/d1";
+import { makeProduct } from "../fakes/fixtures";
+import { seedCatalogue, seedCategories } from "../fakes/seed";
+
+/** The daily job's write, done directly: the read model only reads this table. */
+function seedTopCities(db: TestDb, cities: readonly { readonly city: string; readonly state: string; readonly count: number }[], refreshedAt = "2026-10-01T06:00:00.000Z"): void {
+  const insert = db.sqlite.query("INSERT INTO top_cities (city, state, listable_products, rank, refreshed_at) VALUES (?1, ?2, ?3, ?4, ?5)");
+  cities.forEach((row, index) => insert.run(row.city, row.state, row.count, index + 1, refreshedAt));
+}
+
+function seedSyncRun(db: TestDb, runId: string, finishedAt: string): void {
+  db.sqlite
+    .query("INSERT INTO sync_runs (run_id, kind, status, started_at, finished_at, page_size, category1) VALUES (?1, 'category', 'complete', ?2, ?2, 0, NULL)")
+    .run(runId, finishedAt);
+}
+
+/** Seeds the default fixtures plus their category1 tags and a Chicago-first top_cities list. */
+function seedChicago(db: TestDb): void {
+  seedCatalogue(db);
+  seedCategories(db);
+  seedTopCities(db, [{ city: "Chicago", state: "IL", count: 5 }]);
+}
+
+describe("createTopDealsReadModel: Chicago, IL ranking", () => {
+  it("ranks Chicago by discount in money", async () => {
+    const db = createTestDb();
+    seedChicago(db);
+    const report = await createTopDealsReadModel(db.d1).report({ city: "Chicago", state: "IL", sort: "amount" });
+    expect(report.rows.map((row) => row.productId)).toEqual(["p-laser-chi", "p-bowling-chi", "p-massage-chi", "p-oil-chi", "p-pizza-chi"]);
+    expect(report.rows.map((row) => row.discountMinor)).toEqual([40100, 5100, 5100, 4500, 2100]);
+  });
+
+  it("ranks Chicago by discount in percent", async () => {
+    const db = createTestDb();
+    seedChicago(db);
+    const report = await createTopDealsReadModel(db.d1).report({ city: "Chicago", state: "IL", sort: "percent" });
+    expect(report.rows.map((row) => row.productId)).toEqual(["p-laser-chi", "p-bowling-chi", "p-oil-chi", "p-massage-chi", "p-pizza-chi"]);
+    const [laser, bowling, oil, massage, pizza] = report.rows;
+    expect(laser?.discountShare).toBeCloseTo(0.802, 3);
+    expect(bowling?.discountShare).toBeCloseTo(5100 / 9000, 10);
+    expect(oil?.discountShare).toBeCloseTo(4500 / 8999, 10);
+    expect(massage?.discountShare).toBeCloseTo(5100 / 12000, 10);
+    expect(pizza?.discountShare).toBeCloseTo(0.42, 10);
+  });
+
+  it("keeps one row per product and picks the option with the largest discount", async () => {
+    const db = createTestDb();
+    seedChicago(db);
+    const byAmount = await createTopDealsReadModel(db.d1).report({ city: "Chicago", state: "IL", sort: "amount" });
+    const byPercent = await createTopDealsReadModel(db.d1).report({ city: "Chicago", state: "IL", sort: "percent" });
+    const massageByAmount = byAmount.rows.filter((row) => row.productId === "p-massage-chi");
+    const massageByPercent = byPercent.rows.filter((row) => row.productId === "p-massage-chi");
+    expect(massageByAmount).toHaveLength(1);
+    expect(massageByAmount[0]?.optionId).toBe("o-massage-chi-90");
+    expect(massageByPercent).toHaveLength(1);
+    expect(massageByPercent[0]?.optionId).toBe("o-massage-chi-90");
+  });
+
+  it("skips inactive options and products that are not listable", async () => {
+    const db = createTestDb();
+    seedChicago(db);
+    const report = await createTopDealsReadModel(db.d1).report({ city: "Chicago", state: "IL", sort: "amount" });
+    const ids = report.rows.map((row) => row.productId).sort();
+    expect(ids).toEqual(["p-bowling-chi", "p-laser-chi", "p-massage-chi", "p-oil-chi", "p-pizza-chi"].sort());
+    expect(ids).not.toContain("p-soldout-chi");
+    expect(ids).not.toContain("p-kayak-chi");
+    expect(ids).not.toContain("p-carwash-chi");
+    // laser's inactive option (o-laser-chi-old) never wins the product's row
+    const laser = report.rows.find((row) => row.productId === "p-laser-chi");
+    expect(laser?.optionId).toBe("o-laser-chi-small");
+  });
+});
+
+describe("createTopDealsReadModel: option eligibility", () => {
+  it("skips an option whose original price is 0", async () => {
+    const db = createTestDb();
+    const zeroOriginal = makeProduct({
+      id: "p-zero-original",
+      title: "Zero Original Price",
+      short: "short",
+      categories: ["Test"],
+      places: [["Place", "Testville", "ZZ", "00000"]],
+      options: [{ id: "o-zero-original", title: "Option", original: 0, retail: 0, isDefault: true }],
+    });
+    seedCatalogue(db, [zeroOriginal]);
+    seedTopCities(db, [{ city: "Testville", state: "ZZ", count: 1 }]);
+    const report = await createTopDealsReadModel(db.d1).report({ city: "Testville", state: "ZZ", sort: "amount" });
+    expect(report.rows).toEqual([]);
+  });
+
+  it("skips an option whose original price is not above retail", async () => {
+    const db = createTestDb();
+    const noDiscount = makeProduct({
+      id: "p-no-discount",
+      title: "No Discount",
+      short: "short",
+      categories: ["Test"],
+      places: [["Place", "Testville", "ZZ", "00000"]],
+      options: [{ id: "o-no-discount", title: "Option", original: 1000, retail: 1000, isDefault: true }],
+    });
+    seedCatalogue(db, [noDiscount]);
+    seedTopCities(db, [{ city: "Testville", state: "ZZ", count: 1 }]);
+    const report = await createTopDealsReadModel(db.d1).report({ city: "Testville", state: "ZZ", sort: "amount" });
+    expect(report.rows).toEqual([]);
+  });
+});
+
+describe("createTopDealsReadModel: location keys", () => {
+  it("keeps Hollywood, FL apart from Hollywood, CA", async () => {
+    const db = createTestDb();
+    const hollywoodFl = makeProduct({
+      id: "p-holly-fl",
+      title: "Hollywood FL Deal",
+      short: "short",
+      categories: ["Test"],
+      places: [["FL Place", "Hollywood", "FL", "33019"]],
+      options: [{ id: "o-holly-fl", title: "Option", original: 2000, retail: 1000, isDefault: true }],
+    });
+    const hollywoodCa = makeProduct({
+      id: "p-holly-ca",
+      title: "Hollywood CA Deal",
+      short: "short",
+      categories: ["Test"],
+      places: [["CA Place", "Hollywood", "CA", "90028"]],
+      options: [{ id: "o-holly-ca", title: "Option", original: 3000, retail: 1500, isDefault: true }],
+    });
+    seedCatalogue(db, [hollywoodFl, hollywoodCa]);
+    seedTopCities(db, [
+      { city: "Hollywood", state: "FL", count: 1 },
+      { city: "Hollywood", state: "CA", count: 1 },
+    ]);
+    const readModel = createTopDealsReadModel(db.d1);
+    const flReport = await readModel.report({ city: "Hollywood", state: "FL", sort: "amount" });
+    expect(flReport.rows.map((row) => row.productId)).toEqual(["p-holly-fl"]);
+    const caReport = await readModel.report({ city: "Hollywood", state: "CA", sort: "amount" });
+/**
+ * Guards A2 for top deals: the deals statement must seek `locations` by state and city through
+ * `locations_state_city`, and never scan the whole `options` or `products` table, over every
+ * combination of category1, label and both sorts. The correlated `EXISTS` form of the state/city
+ * filter took 46 s on production; the `IN (SELECT ...)` form must be what runs here.
+ *
+ * Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+ * Module:  test/top-deals/query-plan.test.ts
+ * Deps:    bun:test, bun:sqlite, src/top-deals/read-model.ts, test/fakes/d1.ts, test/fakes/seed.ts
+ * Tested:  this file
+ */
+import { describe, expect, it } from "bun:test";
+import type { TopDealsQuery } from "../../src/contracts/reports";
+import { buildTopDealsSql } from "../../src/top-deals/read-model";
+import { createTestDb } from "../fakes/d1";
+import { seedCatalogue, seedCategories } from "../fakes/seed";
+
+interface PlanRow {
+  readonly detail: string;
+}
+
+function planLines(db: ReturnType<typeof createTestDb>, query: TopDealsQuery): string[] {
+  const bound = buildTopDealsSql(query);
+  const rows = db.sqlite.query(`EXPLAIN QUERY PLAN ${bound.sql}`).all(...(bound.params as (string | number)[])) as PlanRow[];
+  return rows.map((row) => row.detail);
+}
+
+/** A line that reads `options` or `products` (or their aliases `o`/`p`) without going through an index. */
+function hasUnindexedScan(lines: readonly string[]): boolean {
+  return lines.some((line) => /^SCAN (options|o|products|p)\b/.test(line) && !/USING (INDEX|COVERING INDEX)/.test(line));
+}
+
+function seeksStateCity(lines: readonly string[]): boolean {
+  return lines.some((line) => /USING (COVERING )?INDEX locations_state_city/.test(line));
+}
+
+describe("query plan of the top deals statement", () => {
+  const db = createTestDb();
+  seedCatalogue(db);
+  seedCategories(db);
+
+  const category1Values: readonly (string | undefined)[] = [undefined, "beauty-and-spas"];
+  const labelValues: readonly (string | undefined)[] = [undefined, "Massage"];
+  const sorts: readonly TopDealsQuery["sort"][] = ["amount", "percent"];
+
+  for (const sort of sorts) {
+    for (const category1 of category1Values) {
+      for (const label of labelValues) {
+        const name = `sort=${sort} category1=${category1 ?? "none"} label=${label ?? "none"}`;
+        it(`seeks locations by state and city and never scans options or products (${name})`, () => {
+          const lines = planLines(db, { city: "Chicago", state: "IL", sort, category1, label });
+          expect(hasUnindexedScan(lines)).toBe(false);
+          expect(seeksStateCity(lines)).toBe(true);
+        });
+      }
+    }
+  }
+});
+test/sync/category.test.ts:34:  (world.db.sqlite.query("SELECT product_id, category1, run_id FROM product_categories ORDER BY category1, product_id").all() as Tag[]).filter(
+test/sync/category.test.ts:62:  const lines = guide.split("\n");
+test/sync/category.test.ts:65:  return list.split(",").map((value) => value.trim());
+test/sync/category.test.ts:69:  it("sends the category1 filter on every page and tags every product the walk sees", async () => {
+test/sync/category.test.ts:89:  it("untags a product that left the category once the walk is complete", async () => {
+test/sync/category.test.ts:108:  it("keeps yesterday's tags when the walk fails", async () => {
+test/sync/category.test.ts:132:  it("never upserts, retires or moves the watermark on a category walk", async () => {
+test/sync/category.test.ts:146:  it("skips a product the catalogue does not hold yet", async () => {
+test/sync/category.test.ts:158:  it("keeps a product's other category tag when one category is re-walked", async () => {
+test/sync/category.test.ts:174:  it("throws on a category run without a category1, before any request", async () => {
+test/sync/category.test.ts:183:  it("holds the guide's 38 category1 values with things-to-do first", () => {
+test/sync/category.test.ts:190:  it("starts one Workflow instance for 38 runs with things-to-do first", async () => {
+test/sync/category.test.ts:199:    const rows = h.world.db.sqlite.query("SELECT run_id, kind, status, category1, page_size, updated_since FROM sync_runs ORDER BY rowid").all();
+test/sync/category.test.ts:212:  it("refuses while a category walk younger than 6 hours runs, and replaces a stale one", async () => {
+test/sync/category.test.ts:232:    const running = h.world.db.sqlite.query("SELECT count(*) AS n FROM sync_runs WHERE kind = 'category' AND status = 'running'").get();
+test/sync/category.test.ts:236:  it("refuses while a full load is running", async () => {
+test/sync/category.test.ts:247:    expect(h.world.db.sqlite.query("SELECT count(*) AS n FROM sync_runs WHERE kind = 'category'").get()).toEqual({ n: 0 });
+test/sync/category.test.ts:253:  it("marks every run failed when the Workflow instance cannot be created", async () => {
+test/sync/category.test.ts:266:    const rows = world.db.sqlite.query("SELECT run_id, status, error_log FROM sync_runs").all() as { run_id: string; status: string; error_log: string }[];
+test/sync/category.test.ts:291:  it("walks every run of a cycle in order and goes on after a failed category", async () => {
+test/sync/category.test.ts:314:  it("records a crash on a category run and continues with the next", async () => {
+test/sync/category.test.ts:351:  it("leaves category walks out of the sync status", async () => {
+test/sync/category.test.ts:353:    h.world.db.sqlite
+test/ui/pages/top-deals.test.tsx:99:  it("joins the city and the state as City, ST", () => {
+test/ui/pages/top-deals.test.tsx:107:  it("carries category, label, place and sort", () => {
+test/ui/pages/top-deals.test.tsx:111:  it("leaves out an absent label", () => {
+test/ui/pages/top-deals.test.tsx:116:  it("applies the patch over the query", () => {
+test/ui/pages/top-deals.test.tsx:123:  it("names the known slugs", () => {
+test/ui/pages/top-deals.test.tsx:132:  it("title-cases an unknown slug, with and as &", () => {
+test/ui/pages/top-deals.test.tsx:140:  it("says no deals are loaded yet, with the schedule, when there is no city", async () => {
+test/ui/pages/top-deals.test.tsx:145:  it("never says no data", async () => {
+test/ui/pages/top-deals.test.tsx:152:  it("says categories appear after the first category walk, with its time, when nothing is tagged", async () => {
+test/ui/pages/top-deals.test.tsx:157:  it("says the same when the query is known but no category has been tagged", async () => {
+test/ui/pages/top-deals.test.tsx:166:  it("shows the sentence picker with the chosen city, category and label selected, and a Show button", async () => {
+test/ui/pages/top-deals.test.tsx:173:  it("offers only the labels of the chosen category, with any label first", async () => {
+test/ui/pages/top-deals.test.tsx:183:  it("keeps the sort in a hidden field so a new pick keeps the current sort", async () => {
+test/ui/pages/top-deals.test.tsx:188:  it("names the city's deal count and the category's count in the picker note", async () => {
+test/ui/pages/top-deals.test.tsx:194:  it("keeps an asked city outside the top 50 as the selected option", async () => {
+test/ui/pages/top-deals.test.tsx:204:  it("says Top 20 when twenty rows came back, All N when fewer", async () => {
+test/ui/pages/top-deals.test.tsx:213:  it("names the label and the category in the heading when a label is chosen", async () => {
+test/ui/pages/top-deals.test.tsx:219:  it("draws ranks 1 to 3 as podium cards with rank 1 as the winner, and rank 4 on as ranked rows", async () => {
+test/ui/pages/top-deals.test.tsx:228:  it("shows the original struck and the price to pay, and nothing else as a price in a row or card", async () => {
+test/ui/pages/top-deals.test.tsx:239:  it("shows the saving in money and in percent, with the bar, on every ranked row", async () => {
+test/ui/pages/top-deals.test.tsx:244:  it("computes the four tiles from the rows", async () => {
+test/ui/pages/top-deals.test.tsx:257:  it("marks the amount sort current by default and links the percent sort with the same pickers", async () => {
+test/ui/pages/top-deals.test.tsx:262:  it("marks the percent sort current when asked", async () => {
+test/ui/pages/top-deals.test.tsx:268:  it("puts each promo sentence in the footnotes with the row's rank; a row without a promo has no marker", async () => {
+test/ui/pages/top-deals.test.tsx:276:  it("renders no footnotes when no row carries a promo", async () => {
+test/ui/pages/top-deals.test.tsx:283:  it("labels every price cell for the phone layout", async () => {
+test/ui/pages/top-deals.test.tsx:291:  it("never says no data", async () => {
+test/ui/pages/top-deals.test.tsx:298:  it("suggests the whole category, linked, when a label has no discounted deal", async () => {
+test/ui/pages/top-deals.test.tsx:305:  it("suggests the next city, linked, when the whole category has no discounted deal here", async () => {
+test/ui/pages/top-deals.test.tsx:312:  it("offers no link when there is no other city", async () => {
+test/ui/pages/top-deals.test.tsx:322:  it("names when the tags refresh and when the next delta sync runs", async () => {
+test/ui/pages/top-deals.test.tsx:328:  it('says first walk pending when taggedAt is null', async () => {
+test/ui/pages/top-deals.test.tsx:335:  it("escapes a deal title, a label and a city that carry HTML", async () => {
+test/ui/pages/top-deals.test.tsx:349:  it("marks the Top deals nav link current", async () => {
+test/top-deals/read-model.test.ts:22:  const insert = db.sqlite.query("INSERT INTO top_cities (city, state, listable_products, rank, refreshed_at) VALUES (?1, ?2, ?3, ?4, ?5)");
+test/top-deals/read-model.test.ts:27:  db.sqlite
+test/top-deals/read-model.test.ts:40:  it("ranks Chicago by discount in money", async () => {
+test/top-deals/read-model.test.ts:48:  it("ranks Chicago by discount in percent", async () => {
+test/top-deals/read-model.test.ts:61:  it("keeps one row per product and picks the option with the largest discount", async () => {
+test/top-deals/read-model.test.ts:74:  it("skips inactive options and products that are not listable", async () => {
+test/top-deals/read-model.test.ts:90:  it("skips an option whose original price is 0", async () => {
+test/top-deals/read-model.test.ts:106:  it("skips an option whose original price is not above retail", async () => {
+test/top-deals/read-model.test.ts:124:  it("keeps Hollywood, FL apart from Hollywood, CA", async () => {
+test/top-deals/read-model.test.ts:154:  it("shows the location in the chosen city, not the product's first location", async () => {
+test/top-deals/read-model.test.ts:178:  it("filters by the category1 tag, so things-to-do in Chicago is bowling alone", async () => {
+test/top-deals/read-model.test.ts:185:  it("lists a product under each of its categories, so food-and-drink in Chicago is bowling then pizza", async () => {
+test/top-deals/read-model.test.ts:192:  it("filters by a leaf label, case-insensitive", async () => {
+test/top-deals/read-model.test.ts:201:  it("caps the list at 20 rows and numbers them 1 to 20", async () => {
+test/top-deals/read-model.test.ts:227:  it("answers the first city of the list when the request names none", async () => {
+test/top-deals/read-model.test.ts:236:  it("lists the categories of the chosen city with things-to-do first", async () => {
+test/top-deals/read-model.test.ts:248:  it("lists the leaf labels of the chosen city and category by size", async () => {
+test/top-deals/read-model.test.ts:261:  it("carries the promo of the winning option as a footnote value with payMinor equal to retail", async () => {
+test/top-deals/read-model.test.ts:276:  it("answers null tag freshness before the first category walk and the newest finish after", async () => {
+test/top-deals/read-model.test.ts:291:  it("answers an empty report with no city before the first refresh", async () => {
+test/top-deals/query-plan.test.ts:9: * Deps:    bun:test, bun:sqlite, src/top-deals/read-model.ts, test/fakes/d1.ts, test/fakes/seed.ts
+test/top-deals/query-plan.test.ts:24:  const rows = db.sqlite.query(`EXPLAIN QUERY PLAN ${bound.sql}`).all(...(bound.params as (string | number)[])) as PlanRow[];
+test/top-deals/query-plan.test.ts:50:        it(`seeks locations by state and city and never scans options or products (${name})`, () => {
+test/top-deals/cities.test.ts:23:function rankedRows(sqlite: ReturnType<typeof makeWorld>["db"]["sqlite"]): CityRow[] {
+test/top-deals/cities.test.ts:24:  return sqlite.query("SELECT city, state, listable_products, rank, refreshed_at FROM top_cities ORDER BY rank ASC").all() as CityRow[];
+test/top-deals/cities.test.ts:28:  it("ranks cities by listable products keyed by city and state", async () => {
+test/top-deals/cities.test.ts:35:    const rows = rankedRows(world.db.sqlite);
+test/top-deals/cities.test.ts:47:  it("counts a product with two locations in one city once", async () => {
+test/top-deals/cities.test.ts:63:    const rows = rankedRows(world.db.sqlite);
+test/top-deals/cities.test.ts:67:  it("replaces yesterday's list in one write", async () => {
+test/top-deals/cities.test.ts:69:    world.db.sqlite.query("INSERT INTO top_cities (city, state, listable_products, rank, refreshed_at) VALUES (?1, ?2, ?3, ?4, ?5)").run("Stale Town", "ZZ", 999, 1, "2026-09-30T00:00:00.000Z");
+test/top-deals/cities.test.ts:73:    const rows = rankedRows(world.db.sqlite);
+test/top-deals/cities.test.ts:78:  it("keeps the old list when the catalogue has no listable product", async () => {
+test/top-deals/cities.test.ts:80:    world.db.sqlite.query("INSERT INTO top_cities (city, state, listable_products, rank, refreshed_at) VALUES (?1, ?2, ?3, ?4, ?5)").run("Old City", "OH", 3, 1, "2026-09-30T00:00:00.000Z");
+test/top-deals/cities.test.ts:85:    const rows = rankedRows(world.db.sqlite);
+test/top-deals/cities.test.ts:89:  it("caps the list at 50", async () => {
+test/top-deals/cities.test.ts:106:    const rows = rankedRows(world.db.sqlite);
+test/top-deals/cities.test.ts:112:  it("answers a job summary that names the first city", async () => {
+
+web search: 
+web search: https://zorasocial.asajj.cz/top-deals
+codex
+The core page and acceptance record support the requested picker and ranking behavior. The showcase is less complete: two indexed prompt files are missing, and I’m checking whether the “price you pay” wording is supported by the API guide.
+exec
+/usr/bin/bash -lc "cat tsconfig.json tsconfig.scripts.json bunfig.toml && sed -n '620,670p' docs/reference/partner-guide-v7.txt && sed -n '1,200p' docs/plan.md" in <the snapshot directory>
+ exited 1 in 0ms:
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "strict": true,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src"]
+}
+{
+  // Typecheck for the Bun-run surfaces (test/, collector/, bin/*.ts). They use bun:test,
+  // bun:sqlite and node:fs, so bun-types joins the workers types. src comes in through imports.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["bun-types", "@cloudflare/workers-types"]
+  },
+  "include": ["test", "collector", "bin/*.ts"]
+}
+cat: bunfig.toml: No such file or directory
+
+exec
+/usr/bin/bash -lc "rg -n 'fetch\\(|writeFile|mkdir|mkdtemp|spawn\\(|Bun.spawn|execSync|new Database|readFile' test bin/walkthrough.ts && git remote -v && rg --files bin | sort" in <the snapshot directory>
+ succeeded in 0ms:
+bin/walkthrough.ts:18:import { readFileSync } from "node:fs";
+bin/walkthrough.ts:39:  for (const line of readFileSync(vault, "utf8").split("\n")) {
+bin/walkthrough.ts:73:  return fetch(`${host}${path}`, { headers, redirect: "manual" });
+bin/walkthrough.ts:77:  const response = await fetch(`${host}${path}`, { ...init, headers: { authorization: `Bearer ${agentToken}`, "content-type": "application/json", ...(init.headers ?? {}) } });
+bin/walkthrough.ts:83:  return fetch(`${host}${path}`, { method: "POST", body, headers: { "content-type": "application/x-www-form-urlencoded" }, redirect: "manual" });
+bin/walkthrough.ts:195:  const response = await fetch(`${host}/3pd/return?grouponOrderUuid=${uuid}`);
+bin/walkthrough.ts:200:  const status = await fetch(`${host}/3pd/return/status?grouponOrderUuid=${uuid}`);
+test/fakes/env.ts:39:  async fetch(input: RequestInfo | URL): Promise<Response> {
+test/fakes/d1.ts:16:import { readdirSync, readFileSync } from "node:fs";
+test/fakes/d1.ts:169:  const sql = files.map((f: string) => readFileSync(join(MIGRATIONS_DIR, f), "utf8")).join("\n");
+test/fakes/d1.ts:175:  const sqlite = new Database(":memory:");
+test/collector/run.test.ts:9:import { readFileSync } from "node:fs";
+test/collector/run.test.ts:15:const LISTING = readFileSync(join(import.meta.dir, "fixtures", "listing.html"), "utf8");
+test/collector/run.test.ts:43:    async fetch(url, init) {
+test/bin/register.test.ts:11:import { chmodSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+test/bin/register.test.ts:36:    async fetch(request) {
+test/bin/register.test.ts:82:  dir = mkdtempSync(join(tmpdir(), "zal-register-"));
+test/bin/register.test.ts:83:  writeFileSync(join(dir, "vault"), "EXISTING=1\n");
+test/bin/register.test.ts:85:  writeFileSync(join(dir, "wrangler"), `#!/usr/bin/env bash\ncat > "${dir}/wrangler-stdin"\necho "$@" > "${dir}/wrangler-args"\necho "Success"\n`);
+test/bin/register.test.ts:96:  const child = Bun.spawn(["bash", SCRIPT, ...args], {
+test/bin/register.test.ts:115:const vault = () => readFileSync(join(dir, "vault"), "utf8");
+test/bin/register.test.ts:136:    expect(readFileSync(join(dir, "wrangler-stdin"), "utf8")).toBe(TOKEN);
+test/bin/register.test.ts:137:    expect(readFileSync(join(dir, "wrangler-args"), "utf8").trim()).toBe("secret put GROUPON_PARTNER_API_KEY");
+test/bin/register.test.ts:147:    for (const name of files) expect([name, readFileSync(join(dir, "state", name), "utf8").includes("grpn_")]).toEqual([name, false]);
+test/collector/parse.test.ts:9:import { readFileSync } from "node:fs";
+test/collector/parse.test.ts:14:const FIXTURE = readFileSync(join(import.meta.dir, "fixtures", "listing.html"), "utf8");
+test/collector/parse.test.ts:99:    const guide = readFileSync(join(import.meta.dir, "..", "..", "docs", "reference", "partner-guide-v7.txt"), "utf8");
+test/app/return.test.ts:19:  const get = (path: string) => app.fetch(new Request(`${PROD}${path}`), env);
+test/sync/category.test.ts:11:import { readFileSync } from "node:fs";
+test/sync/category.test.ts:61:  const guide = readFileSync(join(import.meta.dir, "..", "..", "docs", "reference", "partner-guide-v7.txt"), "utf8");
+test/app/pages.test.ts:22:  const get = (path: string) => app.fetch(new Request(`${PROD}${path}`), env);
+test/app/pages.test.ts:30:  const get = (path: string) => app.fetch(new Request(`${PROD}${path}`), env);
+test/app/pages.test.ts:203:    const get = (path: string) => app.fetch(new Request(`${PROD}${path}`), env);
+test/app/pages.test.ts:254:    const html = await (await app.fetch(new Request(`${PROD}/top-deals`), env)).text();
+test/app/gates.test.ts:17:  const get = (path: string, headers: Record<string, string> = {}, method = "GET") => app.fetch(new Request(`${PROD}${path}`, { method, headers }), env);
+test/app/gates.test.ts:74:    const response = await app.fetch(new Request(`${PROD}/api/v1/search?q=x`, { headers: bearer("anything-anything-anything") }), env);
+test/app/cron.test.ts:10:import { readFileSync } from "node:fs";
+test/app/cron.test.ts:15:const wrangler = readFileSync(join(import.meta.dir, "..", "..", "wrangler.jsonc"), "utf8");
+test/ui/components/app-css.test.ts:13:import { readFileSync } from "node:fs";
+test/ui/components/app-css.test.ts:16:const css = readFileSync(join(import.meta.dir, "../../../public/static/app.css"), "utf8");
+test/monitor/routes.test.ts:23:    app.fetch(
+test/agent/mcp/routes.test.ts:25:  return app.fetch(
+test/agent/mcp/routes.test.ts:266:    const response = await app.fetch(new Request(`${PROD}/mcp`, { method: "GET", headers: { authorization: `Bearer ${TEST_SECRETS.ZAL_AGENT_TOKEN}` } }), env);
+test/agent/mcp/routes.test.ts:273:    const response = await app.fetch(new Request(`${PROD}/mcp`, { method: "DELETE", headers: { authorization: `Bearer ${TEST_SECRETS.ZAL_AGENT_TOKEN}` } }), env);
+test/agent/api/routes.test.ts:20:  const get = (path: string) => app.fetch(new Request(`${PROD}${path}`, { headers }), env);
+test/agent/api/routes.test.ts:21:  const post = (path: string, body: string) => app.fetch(new Request(`${PROD}${path}`, { method: "POST", headers, body }), env);
+bin/eval-search.ts
+bin/lane-check.ts
+bin/lane-merge
+bin/lane-worktrees
+bin/publish
+bin/register
+bin/walkthrough
+bin/walkthrough.ts
+bin/zal
+bin/zal.ts
+
+exec
+/usr/bin/bash -lc 'bun run typecheck' in <the snapshot directory>
+exec
+/usr/bin/bash -lc 'bun test test/top-deals test/ui/pages/top-deals.test.tsx test/sync/category.test.ts' in <the snapshot directory>
+ succeeded in 268ms:
+
+ 81 pass
+ 0 fail
+ 394 expect() calls
+Ran 81 tests across 5 files. [381.00ms]
+
+ succeeded in 3424ms:
+exec
+/usr/bin/bash -lc "sed -n '620,670p' docs/reference/partner-guide-v7.txt && sed -n '1,220p' docs/plan.md && sed -n '245,365p' bin/walkthrough.ts" in <the snapshot directory>
+ succeeded in 0ms:
+All items are validated before anything is added. If any item fails, nothing is added and no cart is created.
+
+About expectedPrice: send the per-unit price your site is showing. If Groupon's live price differs, the call fails with PRICE_MISMATCH (HTTP 409) and tells you the current price. Update your database and your UI, ask the shopper to confirm, then retry with the new price. Without expectedPrice, the shopper may see a different price at checkout than on your site.
+
+## Changing the cart
+
+- Read re-prices and re-validates each line live. Call it when your cart page loads, and before showing the Buy now button after a long idle period.
+
+- Add items: if the cart already has a line for the same option, its quantity is increased by quantity. This call is therefore not idempotent: see rule 7.
+
+- Change quantity: itemId is the id of the line in the cart (it equals the optionId). quantity is the new absolute quantity, not a delta; 0 is rejected, use Remove instead. Because it sets an absolute value, it is safe to retry.
+
+- Remove item returns the updated cart. Removing the last line returns a cart with itemCount: 0.
+
+- Abandon returns no body. After a successful abandon, discard the cartId and use a new cart (POST /carts) for anything the shopper adds next. Do not send further calls on an abandoned cartId. Adding items to an abandoned or purchased cart does not fail: it silently starts a new, empty cart under the same id, and the shopper's earlier lines are lost. Also discard the cartId once an order has been placed from it (checkout).
+
+## Using the cart response
+
+- After every cart call, overwrite your local cart with the response. Groupon's copy is authoritative for quantity, price and availability.
+
+- buyLink: set your Buy now button's href to this exact string from the latest response, with or without CJ. Open it in the same tab or a new tab; do not fetch it server-side, and do not rewrite it.
+
+- available: false: the line cannot be bought. Show unavailableReason to the shopper, and remove the line before sending them to checkout. Also mark that product or option not listable in your database.
+
+- messages are non-fatal warnings about this response:
+
+- price_unavailable: a line's live price could not be resolved (pricing is null; the line is excluded from totals).
+
+- item_declined: Groupon declined to add an item even though the call returned 200. The item is not in items. Tell the shopper it could not be added.
+
+- Always compare items in the response with what you asked for. A successful 200 does not guarantee every requested line was added.
+
+- grandTotal in totals excludes tax and any promo code. The final amount is shown on Groupon's checkout page.
+
+- A cart that no longer exists (for example after you abandon it, or after an order is placed from it):
+
+- Reading it returns 200 with an empty cart (itemCount: 0).
+
+- Changing or removing one of its lines returns INVALID_PRODUCT_ID (HTTP 404).
+
+Recovery: when a cart you expect to hold items comes back with itemCount: 0, or a change to a line returns INVALID_PRODUCT_ID, or any cart call returns INVALID_CART_ID, treat the cart as gone. Create a new cart with POST /carts from your local copy of the shopper's cart, store the new cartId in place of the old one, and use the new cart's buyLink.
+
+## buyLink with and without CJ
+
+The rest of the cart is the same with and without CJ. Only buyLink differs. The examples below show only the id, buyLink, partner and itemCount fields; every other field is as described in the Carts reference.
+
+After you add CJ: an affiliate tracking link. The shopper passes through CJ, which records your publisher ID, and is redirected to Groupon's checkout page for the cart.
+
+{
+ "id": "3f2b8c1e-5a4d-4b7c-9e10-2a6f8d9c0b11",
+ "buyLink": "https://www.jdoqocy.com/click-7654321-15230314?sid=3f2b8c1e-5a4d-4b7c-9e10-2a6f8d9c0b11&url=https%3A%2F%2Fpartner.groupon.com%2Fcheckout%2Fcart%2F3f2b8c1e-5a4d-4b7c-9e10-2a6f8d9c0b11",
+<!-- Module: docs/plan.md · Tested: n/a · Approved by Robert 2026-09-29 -->
+# Zora Agent Lab: full implementation plan
+
+> **Changes since approval (2026-09-29).** Where this plan and a lane brief in `docs/lanes/` differ, the brief wins.
+> The collector posts to one address, `POST /ingest/observations`, not `/ingest/public-prices`. D1 is used with
+> plain SQL, without drizzle. The MCP server is hand-written and stateless. Deploys use the wrangler login.
+> The account is on Workers Paid (25 cron triggers across the account). Loop 0 record: `docs/ops/loop0.md`.
+
+## Context
+
+The CEO asked on 2026-09-28 (in the team chat) that Robert connects to the Groupon
+Partner Storefront API himself. The discovery plan of 2026-09-29
+(a discovery report outside this repo) ranked what
+to build. Robert chose three products and the frame around them:
+
+- **Price truth monitor**: measures the gap between the price shown and the price paid.
+- **Partner experience daily probe**: runs the partner flow against production every day and keeps a scorecard.
+- **Agent shopping tool**: a request in plain words returns deals and one checkout link (MCP, HTTP, CLI).
+- Partner name **Zora Agent Lab**, logo made with `/img`, frontend designed in **Claude Design**, host **`zorasocial.asajj.cz`**.
+
+Outcome: a registered partner, a working lab at `zorasocial.asajj.cz`, and numbers for the CEO and the partner API team within Iteration 1 (2026-10-01..14).
+
+## What exploration found
+
+- **Hosting pattern exists.** an earlier Worker project (worker `cw-product`, `cw.asajj.cz`) and
+  a second one (`fl.asajj.cz`) are Cloudflare Workers with a custom domain on the asajj.cz
+  zone. flight/crm is the closest model: Hono + drizzle + D1 + static assets + PIN gate, bun tests.
+- **PIN gate to reuse:** the earlier project's PIN gate (HMAC cookie, fail closed). Publish script
+  to copy: the earlier project's publish script (reads `CLOUDFLARE_API_WORKERS_EDIT` and
+  `CLOUDFLARE_ACCOUNT_ID` from `~/s/.env.master`, deploys, smoke tests).
+- **`/img`** = the `/img` skill and the `pig` CLI, key
+  injected per command, every run logged as LLM spend.
+- **Claude Design** = the Design Artifact type (`type_url`
+  `(private Claude Design canvas, link not published)`): artboards on a canvas.
+- **API shape** (`openapi.json` `v003`): products carry options, units and
+  `pricing {original, retail, discountedPrice{amount, promoCode, endDate}}`; carts return
+  `buyLink`, `testMode`, `partner.partnerId`; cart items carry a `url`.
+- **Public price source.** From zora, a groupon.com listing page (`/local/chicago/massage`) returns
+  HTTP 200 with JSON-LD: deal URL, `price` and list price per deal. A single deal page returns
+  HTTP 403 (country CZ). So the public price comes from listing pages, fetched from zora.
+- **Cloudflare limits.** Workflows on the free plan allow 50 subrequests per instance and D1 free
+  allows 100,000 row writes a day. A catalogue of about 57,000 products needs **Workers Paid
+  ($5 a month)**. First step checks whether the account already has it.
+
+## Decisions taken as defaults
+
+| Decision | Default | Reason |
+|---|---|---|
+| Runtime | One Cloudflare Worker `zorasocial` + D1 + Workflows + Cron | Same pattern as `fl.asajj.cz`; the redirect address must not depend on zora being up. |
+| Repo | New repo `~/groupon/zorasocial`, git author set on the machine | Not ai-twin: different product, different secrets. |
+| Access | PIN gate on everything except `/health`, `/logo.png`, `/3pd/return` | Robert's standing rule for asajj.cz surfaces. Groupon's checkout must reach the logo, the shopper must reach the return page. |
+| Agent access | `/mcp` and `/api/v1/*` behind a bearer token | They create carts with our partner key. |
+| LLM inside the Worker | None in version 1 | Agents bring their own model through MCP. The web page is search and cards, not chat. No hidden spend. |
+| Orders | Never automated | Real money. Robert places the two test orders by hand. |
+| Brand | Own identity from the logo, no Groupon marks | The partner name may not contain "Groupon"; the lab must not look like Groupon. |
+
+## How it is executed: loops, models, git for parallel agents
+
+Robert's instruction on the first draft: run it as a loop, use haiku, sonnet and opus wherever
+confidence is 90% or more, design git so the most agents can work at once.
+
+### Contracts first (Wave 0, serial, Fable session)
+
+Agents can only run in parallel when nothing they need is still moving. So Wave 0 freezes every
+shared surface before any lane starts:
+
+- `src/contracts/partner.ts`: types generated from `openapi.json` (`openapi-typescript`).
+- `src/contracts/ports.ts`: the interfaces lanes call each other through: `PartnerClient`,
+  `CatalogueStore`, `SearchIndex`, `CartService`, `ProbeCheck`, `Clock`.
+- `test/fakes/`: a fake `PartnerClient` with fixtures cut from the `openapi.json` examples, and an
+  in-memory D1 (bun `sqlite`) loaded from the migrations. **Every lane builds and tests without a
+  key.**
+- `migrations/0001..0006`: the whole schema, one file per domain, written once.
+- `src/index.ts`: the route table with every lane already mounted on a stub
+  (`src/lanes/<lane>/routes.ts`), and `src/cron.ts` with every scheduled job already listed.
+- `lanes.json`: lane name, owned globs, model, dependencies, gate commands.
+- `bin/lane-check <lane>`: fails when `git diff --name-only main...lane/<lane>` touches a file
+  outside the lane's globs. Deterministic, no LLM.
+
+### Git layout
+
+| Rule | Detail |
+|---|---|
+| One lane, one branch, one worktree | Branch `lane/<name>`, worktree from the Agent tool's `isolation: "worktree"`. No agent works on `main`. |
+| Disjoint ownership | A lane owns a directory. Two lanes never own the same file. |
+| Frozen shared files | `package.json`, `wrangler.jsonc`, `migrations/`, `src/contracts/`, `src/index.ts`, `src/cron.ts`, `lanes.json` belong to the integrator. A lane that needs a change writes `requests/<lane>.md` and carries on against the fake. |
+| No shared log files | Changelog entries go to `changes/<lane>.md`, LLM run rows to `docs/ops/runs/<lane>.md`. The integrator folds them into `CHANGELOG.md` and `docs/ops/llm-manual-runs.md` at merge. |
+| Small commits, ticket-style names | One commit per passing test group, message `<lane>: <outcome>`. |
+| Merge | Lane rebases on `main`, gates pass, integrator merges `--no-ff` in dependency order. A conflict means the ownership rule was broken; fix the rule, not the conflict. |
+
+### Lanes and models
+
+Model rule: the cheapest model I am at least 90% confident will pass the lane's gates. A lane that
+fails its gates twice moves up one tier (haiku, sonnet, opus, Fable).
+
+| Wave | Lane | Owns | Model | Depends on |
+|---|---|---|---|---|
+| 0 | contracts, skeleton, PIN gate, return page, publish | shared files, `src/auth.ts`, `src/return/` | Fable session | none |
+| 0 | `bin/register` (key handling) | `bin/register` | opus, reviewed by Fable | skeleton |
+| 1 | partner-client | `src/partner/` | sonnet | contracts |
+| 1 | sync | `src/sync/` | opus (resume and cursor correctness) | contracts |
+| 1 | search | `src/search/`, `test/eval/` | sonnet | contracts |
+| 1 | agent-api | `src/agent/api/` | sonnet | contracts |
+| 1 | agent-mcp | `src/agent/mcp/` | sonnet | contracts |
+| 1 | cli | `bin/zal` | haiku | contracts |
+| 1 | monitor | `src/monitor/` | sonnet | contracts |
+| 1 | collector | `collector/` | sonnet | contracts |
+| 1 | probe-runner | `src/probe/run.ts`, `src/probe/scorecard.ts` | sonnet | contracts |
+| 1 | probe-checks | `src/probe/checks/*.ts`, one file per check | haiku, one agent per three checks | contracts |
+| 1 | docs-rules | `AGENTS.md`, `rules/`, `README.md` | haiku | none |
+| 2 | ui-components | `src/ui/components/`, `public/static/` | sonnet | approved design |
+| 3 | ui-pages, one agent per page | `src/ui/pages/<page>.tsx` | sonnet | ui-components |
+| every wave | integration, live-key checks, final audit | shared files | Fable session | lanes |
+
+Wave 1 is 12 lanes with no edges between them, so all run at once, in two workflows of at most
+ten agents each. The Claude Design work and the logo run in the Fable session during Wave 1,
+because they need the Artifact tool and Robert's eye.
+
+### The loop
+
+Each wave runs the same loop, at most three times per lane:
+
+1. **Build**: lane agents write tests first, then code, inside their worktree.
+2. **Gates** (deterministic): `bun test`, `tsc --noEmit`, `bin/lane-check`.
+3. **Review** (sonnet, read-only): `code-reviewer`, `security-reviewer`, `silent-failure-hunter`
+   on the lane diff. Each finding needs a file, a line and a failing case.
+4. **Fix**: a sonnet fixer per lane takes only confirmed findings.
+5. Back to 2. Green gates and no confirmed finding ends the loop.
+
+After three loops the Fable session decides: merge with the open finding written into
+`findings`, or take the lane over. Past audits here did not converge on their own, so the cap is
+fixed.
+
+**Loop 0 runs before any code:** two sonnet reviewers attack this plan and the Wave 0 contracts.
+One checks the Cloudflare parts against the documentation (Workflows, D1 FTS5, MCP on Workers).
+One looks for places where two lanes would need the same file. Their confirmed findings change
+the contracts before the lanes start.
+
+Every agent run is logged with model, lane and billed cost. Workflows stay under ten agents each.
+
+## Phases
+
+The phases below say what is built. The section above says who builds it and when.
+
+### Phase 0: repo and skeleton (before registration)
+
+Registration needs a live logo and redirect address, so the skeleton ships first.
+
+- `~/groupon/zorasocial`: `AGENTS.md` (root, mandatory per the GIQ baseline), minimal `CLAUDE.md`
+  with `@AGENTS.md`, `rules/` ported from the owner's global coding rules (outside the repo)
+  (file headers, security, TDD), `CHANGELOG.md`, `docs/ops/llm-manual-runs.md`.
+- Stack as in flight/crm: bun, TypeScript, Hono, drizzle-orm, wrangler 4, `bun test`.
+- `wrangler.jsonc`: worker `zorasocial`, route `zorasocial.asajj.cz` (`custom_domain: true`),
+  D1 binding `DB`, assets `./public` with `run_worker_first`, cron triggers, one Workflow binding.
+- `src/auth.ts`: the cw PIN gate ported to a Hono middleware. Secrets `ZAL_PIN`,
+  `ZAL_SESSION_SECRET`.
+- Public routes: `/health`, `/logo.png`, `/3pd/return` (validates `grouponOrderUuid` as a UUID,
+  stores it, shows a holding page).
+- `bin/publish`: copy of the cw script; smoke test expects 401 on `/`, 200 on `/health` and
+  `/logo.png`.
+- Check the Cloudflare plan. If it is free, stop and tell Robert the cost before going on.
+
+### Phase 1: logo and registration
+
+- **Logo** with `/img`: three 1:1 drafts on the fast model, Robert picks one, final with `-h`.
+  Prompt direction: simple mark plus the words "Zora Agent Lab", flat, readable at 120 px, no
+  Groupon green. Saved to `public/logo.png`, compressed. Each run logged in
+  `docs/ops/llm-manual-runs.md`.
+- **`bin/register`** (the only place the key is ever handled):
+  - refuses to run if `GROUPON_PARTNER_API_KEY` already exists in `~/s/.env.master`;
+  - checks that `logoUrl` and `redirectUrl` answer 200 first;
+  - prints the payload and waits for Robert to type `yes`;
+  - one `POST /octo-gateway/v1/register`, 60-second limit, **no retry**, `x-request-id` logged;
+  - response written to a mode-600 file outside git; key moved into `~/s/.env.master` and piped
+    to `wrangler secret put GROUPON_PARTNER_API_KEY`; **prints only the partner id**;
+  - on a timeout: stops and tells Robert to email `req.partner.api@groupon.com`.
+- Payload: `displayName` "Zora Agent Lab", `partnerContactName` "Robert Vojacek",
+  `partnerContactEmail` `partner-contact@example.com`,
+  `logoUrl` `https://zorasocial.asajj.cz/logo.png`,
+  `redirectUrl` `https://zorasocial.asajj.cz/3pd/return`. No scope, no CJ, no page cap.
+- Then `GET /partners/me` and `GET /supplier`. Minutes and errors go into the scorecard as the
+  first entry.
+- Robert sends the partner id to the partner API team and asks for an internal tag. The plan drafts the
+  message; Robert sends it.
+- Document the new secrets in `~/s/.env.master.md`.
+
+### Phase 2: partner client, catalogue copy, search
+
+- `src/partner/client.ts`: the single place that calls the API. Sends `g-api-key`, custom
+  `User-Agent`, `country=US`, `x-request-id`. Reads errors with
+  `body.error ?? body.details.error ?? body.code`, never by HTTP status. Backoff 2, 4, 8 s, at most
+  5 tries, only on the retryable codes. Never retries add-items. One request per second.
+- D1 schema (`migrations/`): `products`, `options`, `locations`, `products_fts` (FTS5),
+  `sync_runs`, `price_observations`, `price_changes`, `probe_runs`, `probe_checks`, `carts_log`,
+  `orders`, `agent_requests`, `findings`.
+- `src/sync/workflow.ts` (Cloudflare Workflow): one step per page at `limit` 100; follows
+  `nextCursor` until `hasMore` is false; saves `lastRefreshAt` (final timestamp minus 10 minutes)
+  only after a complete walk; resumes from the stored cursor.
+- Cron: delta with `updatedSince` every 3 hours; every changed price becomes a `price_changes` row.
+- Listable rule from the guide: product active, `availabilityRequired` false, at least one option
+  not inactive.
+- `src/search/`: FTS5 with bm25 plus filters (state, city, category, highest price).
+- `test/eval/queries.json` with 20 requests and `bin/eval-search`. Target: 16 of 20 with a
+  relevant, purchasable deal in the top three.
+
+### Phase 3: agent shopping tool
+
+- HTTP: `GET /api/v1/search`, `GET /api/v1/deals/:id`, `POST /api/v1/checkout`,
+  `GET /api/v1/orders/:uuid`. Bearer `ZAL_AGENT_TOKEN`.
+- MCP at `/mcp` (streamable HTTP, same token). Tools: `search_deals`, `get_deal`,
+  `create_checkout_link`, `get_order_status`.
+- Price rule in every answer: **the price to pay is `retail`**. The promo price is a separate
+  field with the code and the sentence that the shopper must type it at checkout.
+- `create_checkout_link` sends `expectedPrice`, handles `PRICE_MISMATCH` by returning the new
+  price instead of a link, returns `buyLink` verbatim, logs the cart in `carts_log`.
+- `bin/zal`: bun CLI over the HTTP API. README line for
+  `claude mcp add --transport http zora-agent-lab https://zorasocial.asajj.cz/mcp`.
+- Fresh-agent test (experiment E6): a sonnet agent with only the MCP address and the goal
+  "checkout link for a massage in Chicago". Logged as an LLM run.
+
+  pay: money(/data-label="You pay"[^>]*>(\$[\d,.]+)/.exec(deal)?.[1]),
+  save: money(/data-label="You save"[^>]*>[^<$]*(\$[\d,.]+)/.exec(deal)?.[1]),
+  pct: Number(/(\d+\.\d) %/.exec(deal)?.[1] ?? "0"),
+});
+
+await check("the top deals page opens with 20 real deals for the default pair, never empty", async () => {
+  const response = await get("/top-deals");
+  const html = await response.text();
+  expect(response.status === 200, `status ${response.status}`);
+  expect(/Top 20 in [^<]+: Things To Do/.test(html), "no Top 20 heading for Things To Do");
+  expect(dealsOf(html).length === 20, `${dealsOf(html).length} deals, expected 20`);
+  expect(count(html, 'href="/deals/') === 20, `${count(html, 'href="/deals/')} deal links, expected 20`);
+  expect(!html.includes("Categories appear after") && !html.includes("No deals are loaded yet"), "the page says it has no data");
+  expect(html.includes('<option value="things-to-do" selected>'), "things-to-do is not the selected category");
+});
+
+await check(`a chosen city and category (${TOP_CITY}, ${TOP_CATEGORY}) returns 20 ranked deals or says why fewer`, async () => {
+  const html = await (await get(topDealsPath({ category: TOP_CATEGORY, place: TOP_CITY, sort: "amount" }))).text();
+  const deals = dealsOf(html);
+  expect(deals.length > 0, "no deals at all");
+  expect(deals.length === 20 || /All \d+ discounted deals? in/.test(html), `${deals.length} deals and no "All N" heading`);
+  expect(deals.every((deal, i) => rankOf(deal) === i + 1), "ranks are not 1..n");
+  expect(html.includes(`Top 20 in ${TOP_CITY}`) || html.includes(`in ${TOP_CITY}:`), "the heading does not name the chosen city");
+});
+
+await check("sort by percent puts the largest percent first, sort by amount the largest amount", async () => {
+  const byPercent = dealsOf(await (await get(topDealsPath({ category: TOP_CATEGORY, place: TOP_CITY, sort: "percent" }))).text()).map((deal) => pricesOf(deal).pct);
+  expect(byPercent.length > 1 && byPercent[0] === Math.max(...byPercent), `first deal ${byPercent[0]} % is not the largest of ${byPercent.join(", ")}`);
+  const byAmount = dealsOf(await (await get(topDealsPath({ category: TOP_CATEGORY, place: TOP_CITY, sort: "amount" }))).text()).map((deal) => pricesOf(deal).save);
+  expect(byAmount[0] === Math.max(...byAmount), `first deal saves ${byAmount[0]}, not the largest ${Math.max(...byAmount)}`);
+  expect(byPercent.join() !== byAmount.join(), "the two sorts gave the same list");
+});
+
+await check("every deal shows the original above the price to pay; the promo price is only in the footnotes", async () => {
+  const html = await (await get(topDealsPath({ category: TOP_CATEGORY, place: TOP_CITY, sort: "amount" }))).text();
+  const deals = dealsOf(html);
+  for (const deal of deals) {
+    const { original, pay, save } = pricesOf(deal);
+    expect(original > pay && pay > 0, `deal ${rankOf(deal)}: original ${original} is not above the price to pay ${pay}`);
+    expect(Math.abs(original - pay - save) < 0.005, `deal ${rankOf(deal)}: You save ${save} is not original ${original} minus pay ${pay}`);
+  }
+  const notes = [...html.matchAll(/<li id="promo-(\d+)" value="\d+">[^<]*?(?:to pay|offer) (\$[\d,.]+)[^<]*?(?:Without it you pay|Expect to pay) (\$[\d,.]+)\./g)];
+  expect(notes.length > 0 || !html.includes("promo</a>"), "deals carry a promo marker but there is no footnote");
+  for (const [, rank = "0", promo = "", pay = ""] of notes) {
+    const deal = deals[Number(rank) - 1] ?? "";
+    expect(new RegExp(`data-label="You pay"[^>]*>${pay.replace(/[$.]/g, "\\$&")}<`).test(deal), `deal ${rank} does not show ${pay} as the price to pay`);
+    expect(!deal.includes(`>${promo}<`), `deal ${rank} shows the promo price ${promo} as a price`);
+    expect(deal.includes(`href="#promo-${rank}"`), `deal ${rank} has no footnote marker`);
+  }
+});
+
+await check("a city outside the list answers a sentence, not a 500", async () => {
+  const response = await get(topDealsPath({ category: "things-to-do", place: "Nowhere, ZZ" }));
+  const html = await response.text();
+  expect(response.status === 200, `status ${response.status}`);
+  expect(html.includes("No discounted deals in Nowhere, ZZ for Things To Do."), "no sentence for the unknown city");
+  expect(count(html, 'href="/deals/') === 0, "deal links for a city that does not exist");
+});
+
+await check("the Top deals link is in the nav of every page", async () => {
+  const html = await (await get("/")).text();
+  expect(html.includes('href="/top-deals"'), "no Top deals link in the nav");
+});
+
+// ---------------------------------------------------------------- MCP
+await check("MCP tools/list and tools/call search_deals answer", async () => {
+  const list = await api<{ result?: { tools: { name: string }[] } }>("/mcp", { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) });
+  const names = (list.body.result?.tools ?? []).map((tool) => tool.name);
+  for (const name of ["search_deals", "get_deal", "create_checkout_link", "get_order_status"]) expect(names.includes(name), `tool ${name} missing from ${names.join(",")}`);
+  const call = await api<{ result?: { content: { type: string; text: string }[] } }>("/mcp", {
+    method: "POST",
+    body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "search_deals", arguments: { text: SEARCH_TEXT } } }),
+  });
+  const text = call.body.result?.content?.map((c) => c.text).join("\n") ?? "";
+  expect(text.includes("Chicago"), "search_deals answered nothing about Chicago");
+});
+
+console.log(`\n${passed} passed, ${misses.length} missed${misses.length ? ":\n- " + misses.join("\n- ") : ""}`);
+process.exit(misses.length === 0 ? 0 : 1);
+
+exec
+/usr/bin/bash -lc "rg -n 'sync-full|category-walk|top-cities|vault|\\.env.master|retry|fetch\\(' bin/zal.ts bin/register docs/ai-builder/README.md README.md src/cron.ts && cat docs/ops/runs/docs-showcase.md docs/ops/runs/sync-category.md docs/ops/runs/ui-components.md" in <the snapshot directory>
+ succeeded in 0ms:
+src/cron.ts:24:  "sync-full": startFullSync,
+src/cron.ts:30:  "top-cities": runTopCitiesRefresh,
+src/cron.ts:31:  "category-walk": startCategoryWalk,
+src/cron.ts:40:  "0 5 * * 1": ["sync-full"],
+src/cron.ts:42:  "30 0 * * *": ["top-cities", "category-walk"],
+bin/register:3:# the API key where it belongs: the vault and the Worker secret. The key is never printed.
+bin/register:21:VAULT="${ZAL_VAULT:-$HOME/s/.env.master}"
+bin/register:34:[ -f "$VAULT" ] || die "vault $VAULT not found"
+bin/register:38:  die "a partner key is already in the vault. One partner is enough; nothing was sent."
+bin/register:72:# ---- one call, no retry
+bin/register:113:# ---- the key goes to the vault first: from here on it exists in two safe places or none
+bin/register:129:echo "The key is in the vault as GROUPON_PARTNER_API_KEY."
+bin/register:135:  echo "WARNING: the Worker secret was NOT set. The key is safe in the vault. Set it with:" >&2
+README.md:63:runs it twice: it refuses if a key is already in the vault, and it refuses if an earlier attempt's
+README.md:67:call, the key goes to the vault and to the Worker secret, and only the partner id is printed.
+README.md:89:zal job <sync-full|sync-delta|probe|cart-sample|promo-gap|cart-sweep|category-walk|top-cities>
+README.md:104:master copy lives in the vault, `~/s/.env.master`.
+bin/zal.ts:88:  zal job <sync-full|sync-delta|probe|cart-sample|promo-gap|cart-sweep|top-cities|category-walk>
+bin/zal.ts:128:    printError(io, "error: ZAL_AGENT_TOKEN not set and not found in vault");
+bin/zal.ts:164:    const response = await io.fetch(`${host}/api/v1/search?${query}`, {
+bin/zal.ts:195:    printError(io, "error: ZAL_AGENT_TOKEN not set and not found in vault");
+bin/zal.ts:206:    const response = await io.fetch(`${host}/api/v1/deals/${productId}`, {
+bin/zal.ts:240:    printError(io, "error: ZAL_AGENT_TOKEN not set and not found in vault");
+bin/zal.ts:262:    const response = await io.fetch(`${host}/api/v1/checkout`, {
+bin/zal.ts:312:    printError(io, "error: ZAL_AGENT_TOKEN not set and not found in vault");
+bin/zal.ts:323:    const response = await io.fetch(`${host}/api/v1/orders/${uuid}`, {
+bin/zal.ts:361:    printError(io, "error: ZAL_ADMIN_TOKEN not set and not found in vault");
+bin/zal.ts:366:  const validJobs = ["sync-full", "sync-delta", "probe", "cart-sample", "promo-gap", "cart-sweep", "top-cities", "category-walk"];
+bin/zal.ts:374:    const response = await io.fetch(`${host}/admin/jobs/${job}`, {
+bin/zal.ts:425:      // Read from ~/s/.env.master if available
+bin/zal.ts:427:        const path = `${process.env.HOME ?? "/root"}/s/.env.master`;
+<!-- Module: docs/ops/runs/docs-showcase.md -->
+| When (UTC) | What | Lane | Model | Billed cost |
+|---|---|---|---|---|
+| 2026-09-30 16:10 | AI Builder story, prompt index, reference README, LICENSE, README and architecture doc updates for the Top deals showcase | docs-showcase | sonnet (Claude Code subagent, Max subscription) | subscription, no per-run bill |
+<!-- Run evidence for lane sync-category. Module: docs/ops/runs/sync-category.md · Tested: n/a -->
+
+| When (UTC) | What | Lane | Model | Billed cost |
+|---|---|---|---|---|
+| 2026-09-30 15:53 | Built the daily category walk: category runs in `src/sync/walk.ts`, tags in `src/sync/tags.ts`, the 38 run cycle in `src/sync/category.ts`, `startCategoryWalk`, the Workflow cycle branch, category runs left out of the sync status; 15 tests in `test/sync/category.test.ts` | sync-category | opus (Claude Code subagent, Max subscription) | subscription, no per-run bill |
+<!-- Module: docs/ops/runs/ui-components.md · Tested: n/a -->
+# ui-components lane run evidence
+
+| When (UTC) | What | Lane | Model | Billed cost |
+|---|---|---|---|---|
+| 2026-09-30 | Built shell, price, card and blocks components plus the designed stylesheet, with tests | ui-components | Claude Sonnet 5 via Claude Code subagent | subscription, no per-run bill |
+| 2026-09-30 | Round 2: option rows, breadcrumb, two-column layout, voucher row, histogram, share bar, check rows, finding card, pill | ui-components | Claude Sonnet 5 via Claude Code subagent | subscription, no per-run bill |
+| 2026-09-30 | Round 3: phone-width fixes from loop 3 screenshots (table-wrap, num nowrap, form-row, pill-row, breadcrumb wrap) | ui-components | Claude Sonnet 5 via Claude Code subagent | subscription, no per-run bill |
+| 2026-09-30 | Round 3 follow-up: button() takes an optional rel for its anchor branch (requests/ui-checkout.md) | ui-components | Claude Sonnet 5 via Claude Code subagent | subscription, no per-run bill |
+| 2026-09-30 | Round 4: breadcrumb-current wraps instead of nowrap; min-width:0 chain so table-wrap scrolls instead of widening the page | ui-components | Claude Sonnet 5 via Claude Code subagent | subscription, no per-run bill |
+| 2026-09-30 | Round 5: Top deals building blocks, selectField and sortToggle, ranked table stylesheet and phone layout, nav test for Top deals | ui-components | Claude Sonnet 5 via Claude Code subagent | subscription, no per-run bill |
+| 2026-09-30 23:40 | Round 6: Top deals round 2, third-pass design: sentenceSelect, statTiles panel/lead, podiumCard, savingBar, ranked-row and podium stylesheet plus phone layout | ui-components | Claude Sonnet 5 via Claude Code subagent | subscription, no per-run bill |
+
+codex
+{
+  "lenses": {
+    "Impact obsessed": {
+      "score": 4,
+      "citation": "review/walkthrough.txt: \"the top deals page opens with 20 real deals for the default pair, never empty\" and \"sort by percent puts the largest percent first, sort by amount the largest amount\"."
+    },
+    "Simplify to scale": {
+      "score": 3,
+      "citation": "docs/ai-builder/README.md: \"A builder who wants to do the same.\" However, docs/ai-builder/prompts/README.md labels the plan and acceptance prompts \"not yet written\"."
+    },
+    "Disciplined": {
+      "score": 3,
+      "citation": "review/walkthrough.txt: \"18 passed, 0 missed\", but also \"skip  web checkout and API checkout (--no-carts)\"."
+    },
+    "Speed over comfort": {
+      "score": 4,
+      "citation": "docs/ops/loop4.md: \"the ask reached the coding session at 14:15 UTC\" and \"the page at 20:06 UTC\"."
+    },
+    "Extreme ownership": {
+      "score": 3,
+      "citation": "AGENTS.md: \"Owner: Robert Vojacek.\" docs/ops/loop4.md: \"Rotating `ZAL_AGENT_TOKEN` before the public push (open since loop 3).\""
+    }
+  },
+  "reject_reason": "I would reject presenting this as a complete, reproducible AI Builder example: the exported prompt trail claims completeness while 03-plan.md and 05-acceptance.md are missing, and no clean-checkout reproduction is demonstrated. The working product is stronger than the instructional package.",
+  "unevidenced": [
+    "The claim that every prompt was committed before an agent saw it is not verifiable from the two public snapshot commits. The review prompt exists, but its index still says it is unwritten.",
+    "The displayed retail price is not proven to be the fully final checkout amount. The API guide says totals exclude tax and promo codes; the supplied acceptance run skips checkout. Keeping optional promos separate was explicitly approved in prompt 02, but that does not establish final totals.",
+    "Catalogue counts name D1 as their source without preserving the queries and results. README.md gives 55,859 products without a timestamp, while the showcase gives 55,822 at 20:10 UTC; changing inventory could explain this, but the public evidence does not reconcile it.",
+    "The detailed build durations cite git history that the public snapshot does not retain."
+  ],
+  "missing": [
+    "A tested path from a fresh checkout through registration, initial catalogue loading, category tagging and city refresh to a populated page.",
+    "A shareable public GitHub URL and an immutable source revision tied to the demonstrated deployment.",
+    "Owners, deadlines and completion evidence for the token rotation and remaining category walk, with release prerequisites distinguished from optional expansion."
+  ],
+  "stars": 3,
+  "narrative": "This is a presentable desktop demo with working pickers and rankings, substantial acceptance evidence, and passing typecheck plus 81 targeted tests in this review, although the phone experience is long and footnote-heavy. I would show the product internally today and finish the reproduction package and price claims before presenting it publicly as an exemplary AI Builder project.",
+  "top_changes": [
+    "Complete and correct the prompt archive, distinguish original prompts from reconstructions, and record a successful fresh-checkout build through to a populated deployment.",
+    "Describe retail accurately as the baseline before tax and optional promo, preserve the approved promo separation, and capture checkout evidence before claiming a fully final price.",
+    "Publish one release evidence page linking the source revision, deployment, timestamped catalogue queries, build timeline and acceptance results, with an owner and closure status for each open item."
+  ]
+}
+tokens used
+47,701
+{
+  "lenses": {
+    "Impact obsessed": {
+      "score": 4,
+      "citation": "review/walkthrough.txt: \"the top deals page opens with 20 real deals for the default pair, never empty\" and \"sort by percent puts the largest percent first, sort by amount the largest amount\"."
+    },
+    "Simplify to scale": {
+      "score": 3,
+      "citation": "docs/ai-builder/README.md: \"A builder who wants to do the same.\" However, docs/ai-builder/prompts/README.md labels the plan and acceptance prompts \"not yet written\"."
+    },
+    "Disciplined": {
+      "score": 3,
+      "citation": "review/walkthrough.txt: \"18 passed, 0 missed\", but also \"skip  web checkout and API checkout (--no-carts)\"."
+    },
+    "Speed over comfort": {
+      "score": 4,
+      "citation": "docs/ops/loop4.md: \"the ask reached the coding session at 14:15 UTC\" and \"the page at 20:06 UTC\"."
+    },
+    "Extreme ownership": {
+      "score": 3,
+      "citation": "AGENTS.md: \"Owner: Robert Vojacek.\" docs/ops/loop4.md: \"Rotating `ZAL_AGENT_TOKEN` before the public push (open since loop 3).\""
+    }
+  },
+  "reject_reason": "I would reject presenting this as a complete, reproducible AI Builder example: the exported prompt trail claims completeness while 03-plan.md and 05-acceptance.md are missing, and no clean-checkout reproduction is demonstrated. The working product is stronger than the instructional package.",
+  "unevidenced": [
+    "The claim that every prompt was committed before an agent saw it is not verifiable from the two public snapshot commits. The review prompt exists, but its index still says it is unwritten.",
+    "The displayed retail price is not proven to be the fully final checkout amount. The API guide says totals exclude tax and promo codes; the supplied acceptance run skips checkout. Keeping optional promos separate was explicitly approved in prompt 02, but that does not establish final totals.",
+    "Catalogue counts name D1 as their source without preserving the queries and results. README.md gives 55,859 products without a timestamp, while the showcase gives 55,822 at 20:10 UTC; changing inventory could explain this, but the public evidence does not reconcile it.",
+    "The detailed build durations cite git history that the public snapshot does not retain."
+  ],
+  "missing": [
+    "A tested path from a fresh checkout through registration, initial catalogue loading, category tagging and city refresh to a populated page.",
+    "A shareable public GitHub URL and an immutable source revision tied to the demonstrated deployment.",
+    "Owners, deadlines and completion evidence for the token rotation and remaining category walk, with release prerequisites distinguished from optional expansion."
+  ],
+  "stars": 3,
+  "narrative": "This is a presentable desktop demo with working pickers and rankings, substantial acceptance evidence, and passing typecheck plus 81 targeted tests in this review, although the phone experience is long and footnote-heavy. I would show the product internally today and finish the reproduction package and price claims before presenting it publicly as an exemplary AI Builder project.",
+  "top_changes": [
+    "Complete and correct the prompt archive, distinguish original prompts from reconstructions, and record a successful fresh-checkout build through to a populated deployment.",
+    "Describe retail accurately as the baseline before tax and optional promo, preserve the approved promo separation, and capture checkout evidence before claiming a fully final price.",
+    "Publish one release evidence page linking the source revision, deployment, timestamped catalogue queries, build timeline and acceptance results, with an owner and closure status for each open item."
+  ]
+}
+codex exit 0

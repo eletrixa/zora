@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Runs the acceptance walkthrough against a live host: bun bin/walkthrough.ts.
+#
+# Project: zorasocial — Zora Agent Lab on the Groupon Partner Storefront API
+# Module:  bin/walkthrough
+# Deps:    bun, bin/walkthrough.ts
+# Tested:  n/a
+
+exec bun "$(dirname "$0")/walkthrough.ts" "$@"

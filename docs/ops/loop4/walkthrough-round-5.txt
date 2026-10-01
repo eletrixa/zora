@@ -1,0 +1,21 @@
+ok    robots.txt disallows everything and every answer carries noindex
+ok    the finder has nothing for a password manager to save
+ok    the finder opens with today's picks, never an empty page
+ok    GET /api/v1/search "massage in Chicago" returns at least 3 deals with the price rule
+ok    the finder page for "massage in Chicago" shows cards with price, promo sentence, city and state
+ok    the deal page shows options with prices, locations, terms, price history and a checkout button per option
+ok    GET /api/v1/deals/:id answers the same deal
+skip  web checkout and API checkout (--no-carts)
+ok    the return page waits and polls for an order Groupon does not know yet
+ok    GET /api/v1/orders/:uuid answers not_found for an unknown order
+ok    the price truth page has today's numbers in all four sections
+ok    the scorecard shows today's run with age, pass rate, failing steps, latency and findings
+ok    the top deals page opens with 20 real deals for the default pair, never empty
+ok    a chosen city and category (New York, NY, beauty-and-spas) returns 20 ranked deals or says why fewer
+ok    sort by percent puts the largest percent first, sort by amount the largest amount
+ok    every deal shows the original above the price to pay; the promo price is only in the footnotes
+ok    a city outside the list answers a sentence, not a 500
+ok    the Top deals link is in the nav of every page
+ok    MCP tools/list and tools/call search_deals answer
+
+18 passed, 0 missed

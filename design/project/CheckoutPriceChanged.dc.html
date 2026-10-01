@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout, price changed</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;font-family:'IBM Plex Sans', 'Segoe UI', sans-serif;color:#1E1F4B;background:#FBF8F3}
+a{color:#2B2D6E}a:hover{color:#B93A22}
+</style>
+</helmet>
+<div style="width: 1280px; height: 560px; box-sizing: border-box; background: #FBF8F3; display: flex; flex-direction: column; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; color: #1E1F4B">
+<header style="display: flex; align-items: center; justify-content: space-between; padding: 14px 56px; background: #FFFFFF; border-bottom: 1px solid #E3DDD2">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #1E1F4B"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="7" y="3" width="3" height="9" fill="{{accent}}"></rect><rect x="14.5" y="0" width="3" height="12" fill="{{accent}}"></rect><rect x="22" y="3" width="3" height="9" fill="{{accent}}"></rect><path d="M3 25a13 13 0 0 1 26 0z" fill="#2B2D6E"></path><rect x="3" y="27.5" width="26" height="3" fill="{{accent}}"></rect></svg><span style="font-family: 'Sora', 'Trebuchet MS', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: 0.02em">Zora Agent Lab</span></a>
+<nav aria-label="Main" style="display: flex; align-items: center; gap: 28px"><a href="Main.dc.html" style="text-decoration: none; font-weight: 500; font-size: 15px; padding: 12px 4px; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; color: #1E1F4B; border-bottom: 3px solid {{accent}}">Find deals</a><a href="PriceTruth.dc.html" style="text-decoration: none; font-weight: 500; font-size: 15px; padding: 12px 4px; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; color: #54567A; border-bottom: 3px solid transparent">Price truth</a><a href="Scorecard.dc.html" style="text-decoration: none; font-weight: 500; font-size: 15px; padding: 12px 4px; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; color: #54567A; border-bottom: 3px solid transparent">Partner scorecard</a></nav>
+</header>
+<main style="padding: 56px; display: flex; justify-content: center">
+<div style="width: 640px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; gap: 14px; align-items: flex-start; padding: 20px; border-radius: 16px; background: #FFF3E3; border: 1px solid #F1C58F"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B4500B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M12 3 2 20h20z"></path><path d="M12 10v4"></path><path d="M12 17v.5"></path></svg><div style="display: flex; flex-direction: column; gap: 6px"><h1 style="margin: 0; font-family: 'Sora', 'Trebuchet MS', sans-serif; font-weight: 700; font-size: 26px; line-height: 1.2">The price changed</h1><p style="margin: 0; font-size: 15px; line-height: 1.5">Groupon changed the price while you were looking. No cart was made.</p></div></div>
+<div style="background: #FFFFFF; border: 1px solid #E3DDD2; border-radius: 16px; padding: 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px"><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600; font-size: 16px">Swedish Massage at Foot Smile Spa</span><span style="font-size: 14px; color: #54567A">60-Minute Swedish Massage</span></div><div style="display: flex; align-items: baseline; gap: 12px"><span style="font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 15px; color: #54567A; text-decoration: line-through">$49.00</span><span style="font-family: 'Sora', 'Trebuchet MS', sans-serif; font-weight: 700; font-size: 28px">$52.00</span></div></div>
+<div style="display: flex; gap: 12px"><a href="Checkout.dc.html" style="min-height: 48px; box-sizing: border-box; padding: 12px 22px; border-radius: 10px; border: 1px solid #2B2D6E; background: #2B2D6E; color: #FFFFFF; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; cursor: pointer">Continue at $52.00</a><a href="Deal.dc.html" style="min-height: 48px; box-sizing: border-box; padding: 12px 22px; border-radius: 10px; border: 1px solid #E3DDD2; background: #FFFFFF; color: #1E1F4B; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; cursor: pointer">Back to the deal</a></div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent": {"editor": "color", "default": "#FF6B4A", "options": ["#FF6B4A", "#F2A541", "#3A7CA5"]}, "$preview": {"width": 1280, "height": 560}}'>
+class Component extends DCLogic {
+renderVals() {
+return Object.assign({ accent: this.props.accent ?? '#FF6B4A' }, {});
+}
+}
+</script>
+</body>
+</html>
